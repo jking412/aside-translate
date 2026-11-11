@@ -39,3 +39,9 @@
 真实浏览器工具栏检查曾启动全新配置的Chrome for Testing，但Windows界面工具绑定失败，重新定位后仍报 `window id … no longer belongs to Chrome; current owner is Chrome`。没有操作个人浏览器，也没有以模拟工具栏截图声称真实工具栏验收成功。这一项仍列为手动发布前检查。
 
 `npm audit --registry=https://registry.npmjs.org` 检查全部开发依赖，报告0项已知漏洞。发布ZIP根目录含manifest，CRC及内容清单检查通过；仅14个运行/许可文件，未包含源码、node_modules、测试profile或任何配置导出。Git另行审查暂存清单并运行 `npm run audit:staged`。
+
+## 最终构建真实复验（2026-11-12 00:08，Asia/Shanghai）
+
+最终源语言推断修复、34项单元测试及14组受控浏览器检查通过后，再次运行 `npm run test:online`：Google真实扩展翻译成功；公开视频HTTP200且播放/拖动正常；元信息识别为 `en-US`，本次确实请求了英文源轨和简体中文目标轨。所记录字幕响应正文字符数均为0，原生及扩展均未显示双语字幕，因此脚本按预期退出1。真实站点字幕显示仍未验收通过，当前结果不支持“已完成真实YouTube字幕可用性验证”的声明。
+
+无需密钥的公共服务与真实视频播放通过，并不代表所有网络或云AI模型通过；云AI仍只有官方协议核验、单元测试和本机HTTP受控测试。正式公开商店发布前应在维护者自己的网络与账号条件下补齐真实双语字幕、原生工具栏和授权对话框检查。
