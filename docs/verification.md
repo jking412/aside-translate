@@ -45,3 +45,7 @@
 最终源语言推断修复、34项单元测试及14组受控浏览器检查通过后，再次运行 `npm run test:online`：Google真实扩展翻译成功；公开视频HTTP200且播放/拖动正常；元信息识别为 `en-US`，本次确实请求了英文源轨和简体中文目标轨。所记录字幕响应正文字符数均为0，原生及扩展均未显示双语字幕，因此脚本按预期退出1。真实站点字幕显示仍未验收通过，当前结果不支持“已完成真实YouTube字幕可用性验证”的声明。
 
 无需密钥的公共服务与真实视频播放通过，并不代表所有网络或云AI模型通过；云AI仍只有官方协议核验、单元测试和本机HTTP受控测试。正式公开商店发布前应在维护者自己的网络与账号条件下补齐真实双语字幕、原生工具栏和授权对话框检查。
+
+## CI 首次运行与环境修复
+
+[首次 GitHub Actions](https://github.com/jking412/aside-translate/actions/runs/43055886602) 的 checkout、Node 和 npm ci 成功；随后 Playwright 安装系统字体时，Ubuntu镜像站出现DNS解析失败，apt退出100，项目测试未执行。没有把该结果标为代码测试失败或CI通过。工作流现改用与 npm Playwright 1.65.0 匹配的官方 `mcr.microsoft.com/playwright:v1.65.0-noble` 容器，直接使用预装浏览器与系统依赖，避免在任务中临时安装字体；依据 [Playwright CI 文档](https://playwright.dev/docs/ci)。最终CI结果以对应提交的Actions为准。

@@ -39,7 +39,7 @@ npm run package
 
 如已安装独立测试用 Chromium，可设置环境变量 `ASIDE_CHROMIUM_PATH` 为其可执行文件绝对路径；不使用个人浏览器资料。
 
-`verify` 包括语法、权限和 PNG 尺寸检查、Node 单元测试、构建及隔离 Chromium 受控浏览器测试。CI 在 Linux 安装 Chromium 后运行相同验证并生成 ZIP。`test:online` 单独探测真实 Google 和公开视频页面，网络失败会记录为未通过，不能把受控测试当成真实服务验收。截图、诊断、临时媒体和独立测试浏览器资料保存在已忽略的 `output/`，不会进入 Git 或发布包。
+`verify` 包括语法、权限和 PNG 尺寸检查、Node 单元测试、构建及隔离 Chromium 受控浏览器测试。CI 使用固定版本的官方 Playwright Linux 容器运行相同验证并生成 ZIP。`test:online` 单独探测真实 Google 和公开视频页面，网络失败会记录为未通过，不能把受控测试当成真实服务验收。截图、诊断、临时媒体和独立测试浏览器资料保存在已忽略的 `output/`，不会进入 Git 或发布包。
 
 从扩展管理页查看 service worker 控制台；网页 DevTools 的内容脚本环境查看运行错误。弹窗右键“检查”查看 popup。不要把带密钥的截图、存储导出、浏览器资料或网络日志提交到仓库。此工程不记录翻译正文或密钥日志。
 
