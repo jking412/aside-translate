@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>旁译 Aside</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="brand">
+      <img src="../assets/icon-32.png" width="32" height="32" alt="" />
+      <div><h1>旁译 Aside</h1><p>翻译成中文</p></div>
+    </header>
+    <main>
+      <section class="page-action" aria-label="网页翻译">
+        <p id="page-host" class="page-host">当前网页</p>
+        <button id="translate" class="primary" type="button" disabled>翻译此页</button>
+        <p id="page-status" class="status" role="status" aria-live="polite">正在连接网页…</p>
+      </section>
+      <section class="features" aria-label="翻译开关">
+        <label class="feature" for="auto-translate">
+          <span><span class="feature-title">自动翻译网页</span><span class="feature-note">打开网页时自动翻译</span></span>
+          <input id="auto-translate" type="checkbox" role="switch" />
+        </label>
+        <label class="feature" for="youtube-enabled">
+          <span><span class="feature-title">YouTube 双语字幕</span><span class="feature-note">原文与中文分行显示</span></span>
+          <input id="youtube-enabled" type="checkbox" role="switch" />
+        </label>
+        <p id="youtube-status" class="status youtube-status" role="status" hidden></p>
+        <p id="preference-status" class="status" role="status" aria-live="polite" hidden></p>
+      </section>
+      <details id="service-details">
+        <summary>翻译服务<span id="service-name">Google 公共服务</span></summary>
+        <form id="service-form">
+          <div class="field"><label for="service">服务</label><select id="service"><option value="google">Google 公共服务</option><option value="libre">自备 LibreTranslate</option><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic</option><option value="gemini">Gemini</option></select></div>
+          <div id="ai-fields" hidden>
+            <div class="field"><label for="provider">服务商预设</label><select id="provider"></select></div>
+            <label class="field" for="model">模型 ID<input id="model" type="text" placeholder="填写服务商提供的模型 ID" autocomplete="off" spellcheck="false" /></label>
+          </div>
+          <div id="custom-fields" hidden>
+            <label class="field" for="endpoint"><span id="endpoint-label">翻译接口地址</span><input id="endpoint" type="url" placeholder="https://example.org/translate" autocomplete="url" spellcheck="false" /></label>
+            <label class="field" for="api-key"><span id="key-label">API 密钥（可选）</span><input id="api-key" type="password" autocomplete="off" spellcheck="false" /></label>
+          </div>
+          <p id="service-help" class="help">无需密钥；可用性取决于当前网络。翻译内容会发送到此服务。</p>
+          <button id="save-service" class="secondary" type="submit">保存服务</button>
+          <p id="settings-status" class="status" role="status" aria-live="polite"></p>
+        </form>
+      </details>
+    </main>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

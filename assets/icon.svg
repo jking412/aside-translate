@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">旁译 Aside · 原译并行</title>
+  <desc id="desc">蓝色方形中的两条错落对话行：白色原文在左上，薄荷色译文在右下，表示译文陪伴原文。</desc>
+  <rect width="128" height="128" rx="29" fill="#165dcc"/>
+  <path d="M26 28h68a8 8 0 0 1 8 8v14a8 8 0 0 1-8 8H36L18 68V36a8 8 0 0 1 8-8Z" fill="#fff"/>
+  <path d="M42 72h60a8 8 0 0 1 8 8v28L92 98H42a8 8 0 0 1-8-8V80a8 8 0 0 1 8-8Z" fill="#8ee5da"/>
+</svg>
