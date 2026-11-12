@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "旁译 Aside",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "一键翻译与恢复网页，按视频时间显示 YouTube 原文与中文双语字幕。",
   "minimum_chrome_version": "120",
   "permissions": [
@@ -10,9 +10,6 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://translate.googleapis.com/*"
-  ],
-  "optional_host_permissions": [
     "http://*/*",
     "https://*/*"
   ],
@@ -30,6 +27,24 @@
       "128": "assets/icon-128.png"
     }
   },
+  "options_ui": {
+    "page": "options/index.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "toggleTranslatePage": {
+      "suggested_key": {
+        "default": "Alt+A"
+      },
+      "description": "翻译网页 / 显示原文"
+    },
+    "toggleTranslateTheWholePage": {
+      "suggested_key": {
+        "default": "Alt+W"
+      },
+      "description": "翻译整页 / 显示原文"
+    }
+  },
   "icons": {
     "16": "assets/icon-16.png",
     "32": "assets/icon-32.png",
@@ -45,16 +60,21 @@
         "content/youtube-main.js"
       ],
       "run_at": "document_start",
-      "world": "MAIN"
+      "world": "MAIN",
+      "all_frames": true
     },
     {
       "matches": [
-        "https://www.youtube.com/*"
+        "http://*/*",
+        "https://*/*"
       ],
       "js": [
         "content/index.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true
     }
   ],
   "content_security_policy": {

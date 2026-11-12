@@ -56,3 +56,5 @@ form { padding-top: 15px; }
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: no-preference) { input[type="checkbox"], input[type="checkbox"]::after { transition: background-color .12s ease, left .12s ease; } }
 @media (forced-colors: active) { input[type="checkbox"] { appearance: auto; } input[type="checkbox"]::after { display: none; } .primary { border: 1px solid ButtonText; } }
+.text-button { border: 0; background: transparent; color: #165dcc; font: inherit; padding: 10px 0 2px; text-decoration: underline; text-underline-offset: 3px; }
+.draft-help { padding-top: 3px; }

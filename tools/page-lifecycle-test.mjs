@@ -15,13 +15,14 @@ async function bundle(entry, exposeClass = false) {
 
 async function makeChrome(page, { delayedSettings = false } = {}) {
   await page.evaluate(({ delayedSettings }) => {
-    globalThis.testSettings = { autoTranslate: false, youtubeEnabled: true, service: 'google', endpoint: '', apiKey: '' };
+    globalThis.testSettings = { autoTranslate: false, youtubeEnabled: true, floatingEnabled: false, service: 'google', endpoint: '', apiKey: '' };
     globalThis.testMessages = [];
     globalThis.testChanges = [];
     globalThis.testStorageReads = 0;
     globalThis.chrome = {
       storage: {
-        local: { get: async () => {
+        local: { get: async keys => {
+          if (typeof keys === 'string') return { [keys]: undefined };
           testStorageReads++;
           if (delayedSettings && testStorageReads === 1) await new Promise(resolve => { globalThis.releaseSettings = resolve; });
           return { ...testSettings };
@@ -71,7 +72,7 @@ export async function testPageLifecycle(context) {
     await page.waitForFunction(() => calls.length === 2);
     assert.deepEqual(await page.evaluate(() => calls), ['Hello first.', 'Hello updated.']);
     await page.evaluate(() => releases[1]('更新译文。'));
-    await page.waitForFunction(() => document.querySelector('p').textContent === '更新译文。');
+    await page.waitForFunction(() => document.querySelector('p')?.querySelector('[data-aside-translation]')?.textContent === '更新译文。');
     await page.evaluate(() => translator.restore());
     assert.equal(await page.locator('p').textContent(), 'Hello updated.');
     results.push('pending text-node edits are translated and restore preserves the new original');
@@ -99,7 +100,7 @@ export async function testPageLifecycle(context) {
     assert.equal(await page.evaluate(() => calls.length), 6, 'late old work must not allow duplicate current-generation jobs');
     await page.evaluate(() => { releases[3]('新一。'); releases[5]('新三。'); });
     await page.waitForFunction(() => !translator.status.busy);
-    assert.deepEqual(await page.locator('p').allTextContents(), ['新一。', '新二。', '新三。']);
+    assert.deepEqual(await page.locator('p [data-aside-translation]').allTextContents(), ['新一。', '新二。', '新三。']);
     await page.evaluate(() => translator.restore());
     assert.deepEqual(await page.locator('p').allTextContents(), ['One.', 'Two.', 'Three.']);
     results.push('restore/restart starts immediately and ignores old-generation completions');
@@ -123,7 +124,7 @@ export async function testPageLifecycle(context) {
     await page.waitForFunction(() => !translator.status.busy);
     assert.equal(await page.evaluate(() => failureCalls.filter(text => text === 'Service fails.').length), 2, 'explicit restore/start retries a failed original');
     await page.evaluate(() => { document.querySelector('p').firstChild.data = 'Changed text.'; });
-    await page.waitForFunction(() => document.querySelector('p').textContent === '已翻译。');
+    await page.waitForFunction(() => document.querySelector('p')?.querySelector('[data-aside-translation]')?.textContent === '已翻译。');
     assert.equal(await page.evaluate(() => failureCalls.filter(text => text === 'Changed text.').length), 1, 'a changed node can retry without a page restart');
     await page.evaluate(() => translator.restore());
     assert.equal(await page.locator('p').first().textContent(), 'Changed text.');
@@ -137,19 +138,19 @@ export async function testPageLifecycle(context) {
     await settingsPage.addScriptTag({ content: indexBundle });
     await settingsPage.waitForFunction(() => testStorageReads === 1);
     await settingsPage.evaluate(() => pageMessage('PAGE_TOGGLE'));
-    await settingsPage.waitForFunction(() => document.querySelector('p').textContent === '谷歌译文。');
+    await settingsPage.waitForFunction(() => document.querySelector('p')?.querySelector('[data-aside-translation]')?.textContent === '谷歌译文。');
     await settingsPage.evaluate(() => changeSettings({ youtubeEnabled: false }));
     await settingsPage.waitForFunction(() => testStorageReads === 2);
-    assert.equal(await settingsPage.locator('p').textContent(), '谷歌译文。');
+    assert.equal(await settingsPage.locator('p [data-aside-translation]').textContent(), '谷歌译文。');
     await settingsPage.evaluate(() => changeSettings({ service: 'libre', endpoint: 'https://example.test/translate' }));
-    await settingsPage.waitForFunction(() => document.querySelector('p').textContent === '自备译文。');
+    await settingsPage.waitForFunction(() => document.querySelector('p')?.querySelector('[data-aside-translation]')?.textContent === '自备译文。');
     assert.equal(await settingsPage.evaluate(() => pageMessage('PAGE_STATUS').translated), true);
     await settingsPage.evaluate(() => pageMessage('PAGE_TOGGLE'));
     await settingsPage.evaluate(() => changeSettings({ youtubeEnabled: true }));
     await settingsPage.waitForFunction(() => testStorageReads === 4);
     assert.equal(await settingsPage.locator('p').textContent(), 'Hello world.');
     await settingsPage.evaluate(() => changeSettings({ autoTranslate: true }));
-    await settingsPage.waitForFunction(() => document.querySelector('p').textContent === '自备译文。');
+    await settingsPage.waitForFunction(() => document.querySelector('p')?.querySelector('[data-aside-translation]')?.textContent === '自备译文。');
     await settingsPage.evaluate(() => pageMessage('PAGE_TOGGLE'));
     await settingsPage.evaluate(() => changeSettings({ youtubeEnabled: false }));
     await settingsPage.waitForFunction(() => testStorageReads === 6);
@@ -164,10 +165,10 @@ export async function testPageLifecycle(context) {
     await initializationPage.addScriptTag({ content: indexBundle });
     await initializationPage.waitForFunction(() => typeof releaseSettings === 'function');
     await initializationPage.evaluate(() => pageMessage('PAGE_TOGGLE'));
-    await initializationPage.waitForFunction(() => document.querySelector('p').textContent === '谷歌译文。');
+    await initializationPage.waitForFunction(() => document.querySelector('p')?.querySelector('[data-aside-translation]')?.textContent === '谷歌译文。');
     await initializationPage.evaluate(() => releaseSettings());
     await initializationPage.waitForTimeout(30);
-    assert.equal(await initializationPage.locator('p').textContent(), '谷歌译文。');
+    assert.equal(await initializationPage.locator('p [data-aside-translation]').textContent(), '谷歌译文。');
     results.push('a late initial settings read cannot undo a newer manual translation');
   } finally { await initializationPage.close(); }
   return results;

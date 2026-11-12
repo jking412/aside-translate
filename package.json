@@ -1,6 +1,6 @@
 {
   "name": "aside-translate",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "旁译 Aside：仅网页翻译和 YouTube 双语字幕的轻量浏览器扩展",
@@ -15,9 +15,10 @@
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tools/browser-test.mjs",
     "test:online": "node tools/online-check.mjs",
-    "verify": "npm run check && npm test && npm run build && npm run test:browser",
+    "verify": "npm run check && npm test && npm run build && npm run test:browser && npm run test:parity",
     "package": "node tools/package.mjs",
-    "audit:staged": "node tools/audit-staged.mjs"
+    "audit:staged": "node tools/audit-staged.mjs",
+    "test:parity": "node tools/page-parity-test.mjs && node tools/ui-parity-test.mjs && node tools/youtube-parity-test.mjs"
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",

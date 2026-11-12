@@ -30,21 +30,10 @@
         <p id="preference-status" class="status" role="status" aria-live="polite" hidden></p>
       </section>
       <details id="service-details">
-        <summary>翻译服务<span id="service-name">Google 公共服务</span></summary>
-        <form id="service-form">
-          <div class="field"><label for="service">服务</label><select id="service"><option value="google">Google 公共服务</option><option value="libre">自备 LibreTranslate</option><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic</option><option value="gemini">Gemini</option></select></div>
-          <div id="ai-fields" hidden>
-            <div class="field"><label for="provider">服务商预设</label><select id="provider"></select></div>
-            <label class="field" for="model">模型 ID<input id="model" type="text" placeholder="填写服务商提供的模型 ID" autocomplete="off" spellcheck="false" /></label>
-          </div>
-          <div id="custom-fields" hidden>
-            <label class="field" for="endpoint"><span id="endpoint-label">翻译接口地址</span><input id="endpoint" type="url" placeholder="https://example.org/translate" autocomplete="url" spellcheck="false" /></label>
-            <label class="field" for="api-key"><span id="key-label">API 密钥（可选）</span><input id="api-key" type="password" autocomplete="off" spellcheck="false" /></label>
-          </div>
-          <p id="service-help" class="help">无需密钥；可用性取决于当前网络。翻译内容会发送到此服务。</p>
-          <button id="save-service" class="secondary" type="submit">保存服务</button>
-          <p id="settings-status" class="status" role="status" aria-live="polite"></p>
-        </form>
+        <summary>翻译服务<span id="service-name">微软翻译</span></summary>
+        <button id="open-settings" class="text-button" type="button">在独立页面配置</button>
+        <p class="help">切去获取密钥时，设置页会保持打开；未保存输入也会保留。</p>
+        <div id="service-editor"></div>
       </details>
     </main>
     <script type="module" src="index.js"></script>

@@ -3,7 +3,10 @@ import { SERVICES, validateServiceSettings } from './translate.js';
 export const DEFAULT_SETTINGS = Object.freeze({
   autoTranslate: false,
   youtubeEnabled: true,
-  service: 'google',
+  youtubeHumanPreferred: true,
+  youtubePreTranslation: true,
+  floatingEnabled: true,
+  service: 'bing',
   endpoint: '',
   apiKey: '',
   model: '',
@@ -14,7 +17,10 @@ export function normalizeSettings(value = {}) {
   return {
     autoTranslate: value.autoTranslate === true,
     youtubeEnabled: value.youtubeEnabled !== false,
-    service: SERVICES.includes(value.service) ? value.service : 'google',
+    youtubeHumanPreferred: value.youtubeHumanPreferred !== false,
+    youtubePreTranslation: value.youtubePreTranslation !== false,
+    floatingEnabled: value.floatingEnabled !== false,
+    service: SERVICES.includes(value.service) ? value.service : 'bing',
     endpoint: typeof value.endpoint === 'string' ? value.endpoint.slice(0, 2048) : '',
     apiKey: typeof value.apiKey === 'string' ? value.apiKey.slice(0, 1024) : '',
     model: typeof value.model === 'string' ? value.model.trim().slice(0, 1024) : '',
@@ -28,6 +34,8 @@ export async function loadSettings() {
 
 export async function saveSettings(patch) {
   const settings = validateServiceSettings(normalizeSettings({ ...await loadSettings(), ...patch }));
-  await chrome.storage.local.set(settings);
-  return settings;
+  // Write only requested fields so another window's unrelated preference cannot be replayed from an old read.
+  const changes = Object.fromEntries(Object.keys(patch).filter(key => key in DEFAULT_SETTINGS).map(key => [key, settings[key]]));
+  await chrome.storage.local.set(changes);
+  return loadSettings();
 }

@@ -1,4 +1,4 @@
-// Reviewed official endpoints; see docs/ai-services.md. Never embed keys or a model catalogue.
+// Reviewed official endpoints and a small provider default; see docs/ai-services.md. Never embed keys.
 export const PROVIDER_PRESETS = Object.freeze([
   {
     "id": "custom",
@@ -19,7 +19,11 @@ export const PROVIDER_PRESETS = Object.freeze([
     "name": "DeepSeek",
     "service": "openai",
     "endpoint": "https://api.deepseek.com/chat/completions",
-    "help": "使用服务商当前模型 ID；不固定模型版本。"
+    "defaultModel": "deepseek-flash",
+    "models": ["deepseek-flash", "deepseek-v4-pro"],
+    "modelsCheckedAt": "2026-11-12",
+    "modelDocs": "https://api-docs.deepseek.com/en/",
+    "help": "默认 deepseek-flash；可选 deepseek-v4-pro 或自定义。模型名称已于 2026-11-12 核对官方文档。"
   },
   {
     "id": "qwen-cn",

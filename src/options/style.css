@@ -1,0 +1,14 @@
+body.settings-page { width: auto; margin: 0; padding: 40px 24px 56px; background: #f4f7fc; }
+.settings-shell { max-width: 680px; margin: 0 auto; }
+.settings-page .brand { margin-bottom: 22px; }
+.settings-page h1 { font-size: 23px; letter-spacing: 0; }
+.settings-page .intro { line-height: 1.9; color: #52647d; margin: 0 0 28px; max-width: 600px; }
+.settings-page section { background: white; border: 1px solid #e0e7f0; border-radius: 12px; margin-bottom: 24px; padding: 22px 26px; }
+.settings-page h2 { margin: 0 0 14px; font-size: 17px; font-weight: 650; }
+.settings-page .feature { min-height: 67px; }
+.settings-page .feature + .feature { border-top: 1px solid #edf1f7; }
+.settings-page .field { margin-bottom: 19px; }
+.settings-page .field input, .settings-page .field select { min-height: 40px; }
+.settings-page form { padding-top: 9px; }
+.settings-page footer { padding: 0 3px; line-height: 1.9; }
+@media (max-width: 480px) { body.settings-page { padding: 22px 14px 36px; } .settings-page section { padding: 18px; } .settings-page h1 { font-size: 21px; } }

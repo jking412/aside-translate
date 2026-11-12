@@ -7,13 +7,14 @@ const dist = join(root, 'dist');
 if (dist !== resolve(root, 'dist')) throw new Error('Invalid output path');
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
-const entries = ['background/index', 'content/index', 'content/youtube-main', 'popup/index'];
+const entries = ['background/index', 'content/index', 'content/youtube-main', 'popup/index', 'options/index'];
 for (const entry of entries) {
   await build({ entryPoints: [join(root, 'src', entry + '.js')], outfile: join(dist, entry + '.js'),
-    bundle: true, format: /^(background|popup)/.test(entry) ? 'esm' : 'iife', target: 'chrome120',
+    bundle: true, format: /^(background|popup|options)/.test(entry) ? 'esm' : 'iife', target: 'chrome120',
     legalComments: 'none', charset: 'utf8', minify: false });
 }
 for (const name of ['index.html', 'style.css']) await cp(join(root, 'src/popup', name), join(dist, 'popup', name));
+for (const name of ['index.html', 'style.css']) await cp(join(root, 'src/options', name), join(dist, 'options', name));
 await mkdir(join(dist, 'assets'), { recursive: true });
 for (const n of [16,32,48,128]) await cp(join(root, 'assets', `icon-${n}.png`), join(dist, 'assets', `icon-${n}.png`));
 for (const file of ['manifest.json', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'PRIVACY.md']) await cp(join(root, file), join(dist, file));

@@ -46,7 +46,13 @@ try {
       if (event.source !== window || message?.source !== 'light-translate') return;
       const evidence = window.__asideOnlineEvidence;
       if (message.kind === 'youtube-request') evidence.requests[message.id] = message.operation;
+      if (message.kind === 'youtube-native-track') {
+        const result = message.result;
+        evidence.replies.push({operation:'nativeTrack', languageCode:result?.languageCode, translatedLanguage:result?.translatedLanguage, eventCount:result?.data?.events?.length, nonemptyEventCount:result?.data?.events?.filter(event=>event.segs?.some(segment=>segment?.utf8?.trim())).length});
+      }
       if (message.kind === 'youtube-response') {
+        const operation = evidence.requests[message.id] || 'unknown';
+        if (operation === 'clock') { delete evidence.requests[message.id]; return; }
         const result = message.result;
         evidence.replies.push({ operation: evidence.requests[message.id] || 'unknown',
           error: typeof message.error === 'string' ? message.error.slice(0, 150) : undefined,
@@ -113,11 +119,12 @@ try {
       await page.screenshot({ path: join(out, `youtube-real-${width}.png`) });
     }
     const bridge = await page.evaluate(() => window.__asideOnlineEvidence?.replies || []);
-    const trackSucceeded = bridge.some(reply => reply.operation === 'track' && reply.nonemptyEventCount > 0);
+    const nativeSucceeded = bridge.some(reply => reply.operation === 'nativeTrack' && reply.nonemptyEventCount > 0);
+    const trackSucceeded = nativeSucceeded || bridge.some(reply => reply.operation === 'track' && reply.nonemptyEventCount > 0);
     const sourceVisible = samples.some(frame => frame.source);
     const bilingualVisible = samples.some(frame => frame.source && frame.translation);
     const progressed = samples.some(frame => !frame.paused && frame.mediaTime > (samples[0]?.mediaTime ?? 0) + 1);
-    const mode = trackSucceeded ? 'public JSON3 track fetched' : sourceVisible ? 'current native caption DOM fallback' : 'no visible extension caption in sample';
+    const mode = nativeSucceeded ? 'native player caption track captured' : trackSucceeded ? 'public JSON3 track fetched' : sourceVisible ? 'current native caption DOM fallback' : 'no visible extension caption in sample';
     await Promise.race([Promise.allSettled(bodyChecks), new Promise(resolve => setTimeout(resolve, 3000))]);
     report.youtube = { ok: progressed && bilingualVisible && seek.attempted, httpStatus: response?.status(), title: await page.title(), videoPresent: await video.count(), overlayPresent: await page.locator('.lt-youtube-overlay').count(),
       playback, ccRequested, progressed, sourceVisible, bilingualVisible, mode, timedtext, bridge, samples, beforeSeek, seek, immediatelyAfterSeek, sizes,

@@ -1,39 +1,37 @@
-/** Parse the public JSON3 caption format. This deliberately keeps platform event
- * boundaries; it does not reproduce another extension's sentence rules. */
-export function parseJson3(input) {
+import { englishWordCues } from './youtube-asr.js';
+/** Parse platform JSON3 into a stable utterance timeline. English ASR uses word
+ * timings; human tracks retain their authored overlapping/multiline groups. */
+export function parseJson3(input, options = {}) {
   const data = typeof input === 'string' ? JSON.parse(input) : input;
   if (!Array.isArray(data?.events)) throw new TypeError('字幕缺少 events 数组');
-  const rows = [];
-  const events = data.events.slice(0, 20000).filter((event) =>
-    Number.isFinite(event?.tStartMs) && event.tStartMs >= 0,
-  ).sort((a, b) => a.tStartMs - b.tStartMs);
-  for (const event of events) {
-    if (!Array.isArray(event.segs)) continue;
-    const raw = event.segs.map((segment) => typeof segment?.utf8 === 'string' ? segment.utf8 : '').join('');
-    const text = captionText(raw).slice(0, 2000);
-    const start = event.tStartMs / 1000;
-    const previous = rows.at(-1);
-    if (!text) {
-      if (previous && start > previous.start) previous.end = Math.min(previous.end, start);
-      continue;
-    }
-    const duration = Number.isFinite(event.dDurationMs) && event.dDurationMs > 0
-      ? Math.min(event.dDurationMs / 1000, 30) : 3;
-    const end = start + duration;
-    if (event.aAppend === 1 && previous && start <= previous.end + 0.15) {
-      previous.text = captionText(previous.text + (/^\s/.test(raw) ? ' ' : '') + text).slice(0, 2000);
-      previous.end = Math.max(previous.end, end);
-    } else if (previous?.start === start) {
-      if (previous.text !== text) previous.text += ' ' + text;
-      previous.end = Math.max(previous.end, end);
-    } else {
-      if (previous) previous.end = Math.min(previous.end, start);
-      rows.push({ start, end, text });
-    }
+  if (options.kind === 'asr' && /^en(?:-|$)/i.test(options.language || '') && options.preTranslation !== false) {
+    const segmented = englishWordCues(data.events.slice(0, 20000));
+    if (segmented) return segmented;
   }
-  return rows.filter((cue) => cue.end > cue.start);
+  const spoken = data.events.slice(0, 20000).filter(event => event?.aAppend !== 1 && Number.isFinite(event?.tStartMs) && event.tStartMs >= 0 && Number.isFinite(event.dDurationMs) && event.dDurationMs > 0 && Array.isArray(event.segs));
+  const multi = spoken.filter(event => event.segs.some(segment => String(segment?.utf8 || '').includes('\n'))).length > spoken.length / 2
+    && !spoken.some(event => event.segs.some(segment => Number.isFinite(segment?.tOffsetMs)));
+  const authored = spoken.map(event => ({ start: event.tStartMs / 1000, end: (event.tStartMs + event.dDurationMs) / 1000,
+    text: captionText(event.segs.map(segment => typeof segment?.utf8 === 'string' ? segment.utf8 : '').join('')).slice(0, 2000),
+  })).filter(cue => cue.text && Number.isFinite(cue.end)).sort((left, right) => left.start - right.start);
+  const nextStart = new Array(authored.length);
+  for (let index = authored.length - 2; index >= 0; index--) nextStart[index] = authored[index + 1].start > authored[index].start ? authored[index + 1].start : nextStart[index + 1];
+  const rows = [];
+  for (let index = 0; index < authored.length; index++) {
+    const cue = { ...authored[index] };
+    if (multi || cue.end - cue.start > 60) {
+      if (Number.isFinite(nextStart[index])) cue.end = Math.min(cue.end, nextStart[index]);
+    }
+    const previous = rows.at(-1);
+    if (previous && previous.start === cue.start && previous.end === cue.end && previous.text === cue.text) continue;
+    if (previous && cue.start < previous.end) previous.text += (/^ja(?:-|$)/i.test(options.language || '') ? '' : ' ') + cue.text;
+    else rows.push(cue);
+  }
+  if (/^ja(?:-|$)/i.test(options.language || '')) for (let index = 0; index < rows.length - 1; index++) {
+    rows[index].end = Math.max(rows[index].end, Math.min(rows[index + 1].start - 0.001, rows[index].start + Array.from(rows[index].text).length / 7));
+  }
+  return rows;
 }
-
 export function captionText(value) {
   const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
   return String(value ?? '').replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi, (all, code) => {
@@ -58,15 +56,13 @@ export function cueIndexAt(cues, time) {
   return candidate >= 0 && time < cues[candidate].end ? candidate : -1;
 }
 
-/** Only use a human target cue when its boundaries identify the same utterance. */
+/** Human tracks often use different sentence boundaries. Join target cues that
+ * meaningfully overlap this spoken interval, while excluding adjacent rows. */
 export function alignedTranslation(cue, targets) {
-  const index = cueIndexAt(targets, cue.start + 0.01);
-  for (const target of targets.slice(Math.max(0, index - 1), Math.max(0, index) + 3)) {
-    if (Math.abs(target.start - cue.start) <= 0.4 && Math.abs(target.end - cue.end) <= 0.8) return target.text;
-  }
-  return '';
+  const margin = Math.min(0.5, Math.max(0, cue.end - cue.start) / 4);
+  return targets.filter(target => target.end > cue.start + margin && target.start < cue.end - margin)
+    .map(target => target.text).join(' ').trim();
 }
-
 /** Translation completion stores data only. Rendering always reads the media
  * clock again, so an expired translation can never replay a caption. */
 export class CueTimeline {
@@ -78,6 +74,7 @@ export class CueTimeline {
     this.pending = new Map();
     this.failed = new Set();
     this.generation = 0;
+    this.prefetchEnabled = true;
   }
 
   reset(cues = []) {
@@ -96,10 +93,10 @@ export class CueTimeline {
 
   frame(time) {
     const index = cueIndexAt(this.cues, time);
-    const first = index >= 0 ? index : this.cues.findIndex((cue) => cue.start > time);
+    const first = index >= 0 ? index : this.prefetchEnabled ? this.cues.findIndex((cue) => cue.start > time) : -1;
     if (first >= 0) {
-      for (let next = first; next < Math.min(first + 4, this.cues.length); next++) {
-        if (this.cues[next].start > time + 12 || this.pending.size >= 2) break;
+      for (let next = first; next < Math.min(first + (this.prefetchEnabled ? 12 : 1), this.cues.length); next++) {
+        if (this.pending.size >= 2) break;
         this.request(next);
       }
     }
@@ -167,4 +164,14 @@ export function sourceAudioLanguage(response) {
   const index = renderer?.defaultAudioTrackIndex;
   const defaultAudio = Number.isInteger(index) && index >= 0 ? audioTracks[index] : undefined;
   return languageOf(defaultAudio) || languageOf(streams.find(audio => audio?.audioIsDefault === true)) || '';
+}
+
+
+/** CSS pixel sizing observed at 640/1280 and portrait players, implemented from
+ * the measured layout contract rather than a copied renderer. */
+export function captionFontPixels(width, height) {
+  if (!(width > 0 && height > 0)) return 16;
+  const horizontal = width / 45, vertical = height / 24;
+  const portraitFloor = vertical > 14 && vertical > horizontal * 2 ? Math.max(14, vertical / 2.5) : 10;
+  return Math.round(Math.max(portraitFloor, Math.min(horizontal, vertical)));
 }

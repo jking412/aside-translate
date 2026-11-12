@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-import { mkdtemp, mkdir, readFile, writeFile, cp } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:http';
 
@@ -27,6 +27,7 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify(response));
   } else {
     res.setHeader('Content-Type','text/html; charset=utf-8');
+    if (req.url === '/frame') { res.end('<!doctype html><html><body><p id="frame-text">A paragraph inside another frame.</p></body></html>'); return; }
     res.end('<!doctype html><html><body><h1>Hello world.</h1><p id="paragraph">A useful paragraph.</p><code>Do not translate code.</code><input value="Do not translate input."><div id="dynamic"></div></body></html>');
   }
 });
@@ -37,6 +38,7 @@ async function launch(extension, label) {
   const context = await chromium.launchPersistentContext(profile, { channel: 'chromium', executablePath,
     headless: true, viewport: { width: 1100, height: 800 },
     args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`, '--autoplay-policy=no-user-gesture-required'] });
+  context.setDefaultTimeout(10000);
   contexts.push(context);
   context.on('page', page => page.on('pageerror', e => errors.push(e.message)));
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
@@ -55,8 +57,8 @@ try {
   const shipping = await launch(join(root,'dist'),'shipping');
   const permissions = await shipping.worker.evaluate(() => chrome.permissions.getAll());
   assert.deepEqual(permissions.permissions.sort(),['activeTab','scripting','storage'].sort());
-  assert.ok(!permissions.origins.includes('https://*/*'));
-  checks.push('Shipping MV3 loads with only required permissions; all-web access remains optional.');
+  assert.ok(permissions.origins.includes('http://*/*') && permissions.origins.includes('https://*/*'));
+  checks.push('Exact shipping MV3 installs website access once; core actions require no runtime permission request.');
   const popup = await shipping.context.newPage();
   await popup.goto(`chrome-extension://${shipping.id}/popup/index.html`);
   await popup.locator('#page-status').filter({hasText:'普通网页'}).waitFor();
@@ -75,22 +77,14 @@ try {
   for(const protocol of ['openai','anthropic','gemini']) {
     await popup.locator('#service').selectOption(protocol);
     assert.equal(await popup.locator('#model').isVisible(),true);
-    assert.equal(await popup.locator('#model').inputValue(),'');
     assert.ok((await popup.locator('#endpoint').inputValue()).startsWith('https://'));
   }
   assert.ok(await popup.locator('#provider option').count()>=2);
-  checks.push('AI configuration stays folded by default; protocol presets populate URLs and require a user model ID.');
+  checks.push('AI configuration stays folded by default; protocol presets populate their provider fields.');
   await shipping.context.close(); contexts=[];
 
-  // The controlled automation grants all web hosts only to a disposable copy.
-  // This avoids automating Chromium's native permission confirmation dialog.
-  // All shipped JS/CSS/icons remain byte-for-byte identical to dist.
-  const testExtension = join(out,'test-extension');
-  await cp(join(root,'dist'),testExtension,{recursive:true});
-  const manifest = JSON.parse(await readFile(join(testExtension,'manifest.json'),'utf8'));
-  manifest.host_permissions = [...manifest.host_permissions,'http://*/*','https://*/*'];
-  await writeFile(join(testExtension,'manifest.json'),JSON.stringify(manifest));
-  const {context,worker,id} = await launch(testExtension,'controlled');
+  // Functional checks use the exact shipping manifest and bundles unchanged.
+  const {context,worker,id} = await launch(join(root,'dist'),'controlled');
   await configure(worker,{service:'libre',endpoint,apiKey:'',autoTranslate:false,youtubeEnabled:true});
   const page = await context.newPage();
   await page.goto(endpoint.replace('/translate','/article'));
@@ -113,25 +107,61 @@ try {
   assert.equal(await page.locator('#dynamic').textContent(),'New dynamic text.');
   checks.push('Actual bundled page translator: translate/restore, dynamic text, input/code exclusion, subtitle setting isolation.');
 
+  const frameUrl = endpoint.replace('127.0.0.1','localhost').replace('/translate','/frame');
+  await page.evaluate(url => { const frame=document.createElement('iframe');frame.src=url;frame.id='cross-frame';document.body.append(frame); },frameUrl);
+  await page.frameLocator('#cross-frame').locator('#frame-text').waitFor();
+  await page.locator('#aside-floating').getByRole('button',{name:'翻译此页',exact:true}).click();
+  await page.frameLocator('#cross-frame').locator('[data-aside-translation]').filter({hasText:'中文：A paragraph inside another frame.'}).waitFor();
+  await page.locator('#paragraph [data-aside-translation]').waitFor();
+  assert.equal(await page.frameLocator('#cross-frame').locator('#aside-floating').count(),0,'Only the top frame owns floating controls');
+  await page.evaluate(() => { const frame=document.createElement('iframe');frame.id='srcdoc-frame';frame.srcdoc='<p id="inherited-text">An inherited-origin paragraph.</p>';document.body.append(frame); });
+  await page.frameLocator('#srcdoc-frame').locator('#inherited-text').waitFor();
+  await page.waitForTimeout(250);
+  await page.locator('#aside-floating').getByRole('button',{name:'恢复原文',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('[data-aside-translation]'));
+  assert.equal(await page.frameLocator('#cross-frame').locator('[data-aside-translation]').count(),0);
+  assert.equal(await page.frameLocator('#srcdoc-frame').locator('[data-aside-translation]').count(),0,'A new untranslated frame must not toggle on while its parent restores');
+  await page.locator('#aside-floating').getByRole('button',{name:'翻译此页',exact:true}).click();
+  await page.frameLocator('#srcdoc-frame').locator('[data-aside-translation]').filter({hasText:'中文：An inherited-origin paragraph.'}).waitFor();
+  await page.locator('#aside-floating').getByRole('button',{name:'恢复原文',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('[data-aside-translation]'));
+  checks.push('Shipping floating control sets all frames consistently: a different origin, inherited about:srcdoc, and a newly inserted untranslated frame, with one top-frame entry.');
+
   await configure(worker,{autoTranslate:true});
-  await assert.doesNotReject(async()=> {
-    for(let i=0;i<40;i++) {
-      const scripts=await worker.evaluate(()=>chrome.scripting.getRegisteredContentScripts());
-      if(scripts.some(s=>s.id==='auto-pages')) return;
-      await new Promise(resolve=>setTimeout(resolve,50));
-    }
-    throw new Error('Auto script was not registered');
-  });
+  assert.equal((await worker.evaluate(()=>chrome.scripting.getRegisteredContentScripts())).length,0,'Static page scripts replace legacy optional registration');
   const automatic=await context.newPage();
   await automatic.goto(endpoint.replace('/translate','/automatic'));
   await automatic.locator('h1').filter({hasText:'中文：Hello world.'}).waitFor();
   await configure(worker,{autoTranslate:false,youtubeEnabled:true});
   await automatic.locator('h1').filter({hasText:/^Hello world\.$/}).waitFor();
-  checks.push('Auto registration on new tabs and disable/restore work after host access is granted to the controlled copy.');
+  checks.push('Exact shipping package auto-translates new tabs and restores connected pages without permission dialogs.');
 
-  const settingsPopup=await context.newPage();
+  let settingsPopup=await context.newPage();
   await settingsPopup.goto(`chrome-extension://${id}/popup/index.html`);
   await settingsPopup.locator('#service-details').click();
+  await settingsPopup.locator('#service').selectOption('openai');
+  await settingsPopup.locator('#provider').selectOption('deepseek');
+  assert.equal(await settingsPopup.locator('#model').inputValue(),'deepseek-flash');
+  await settingsPopup.locator('#api-key').fill('fixture-unfinished-draft');
+  await settingsPopup.close();
+  settingsPopup=await context.newPage();
+  await settingsPopup.goto(`chrome-extension://${id}/popup/index.html`);
+  await settingsPopup.locator('#service-details').click();
+  assert.equal(await settingsPopup.locator('#provider').inputValue(),'deepseek');
+  assert.equal(await settingsPopup.locator('#api-key').inputValue(),'fixture-unfinished-draft');
+  assert.equal((await worker.evaluate(()=>chrome.storage.local.get('service'))).service,'libre','Unfinished provider editing never activates it');
+  const optionsOpened=context.waitForEvent('page');
+  await settingsPopup.locator('#open-settings').click();
+  const realOptions=await optionsOpened;
+  await realOptions.waitForURL(`chrome-extension://${id}/options/index.html`);
+  await realOptions.locator('#api-key').fill('');
+  await realOptions.reload();
+  await realOptions.waitForFunction(()=>document.getElementById('save-service')?.disabled===false);
+  assert.equal(await realOptions.locator('#provider').inputValue(),'deepseek');
+  assert.equal(await realOptions.locator('#api-key').inputValue(),'');
+  await realOptions.locator('section').last().screenshot({path:join(out,'options-deepseek.png')});
+  await realOptions.close();
+  checks.push('Shipping popup draft survives document destruction in real chrome.storage.local; openOptionsPage opens a persistent tab and reload preserves the unfinished provider without activating it.');
   for(const service of ['openai','anthropic','gemini']) {
     await settingsPopup.locator('#service').selectOption(service);
     await settingsPopup.locator('#provider').selectOption('custom');
@@ -181,10 +211,10 @@ try {
       return route.fulfill({body:media,contentType:'video/webm',headers:{'accept-ranges':'bytes'}});
     }
     if(url.pathname==='/api/timedtext') return route.fulfill({json:track(url.searchParams.get('v'),url.searchParams.get('lang'))});
-    if(url.pathname!='/watch') return route.fulfill({body:'',status:404});
+    if(url.pathname!='/watch' && !url.pathname.startsWith('/embed/')) return route.fulfill({body:'',status:404});
     return route.fulfill({contentType:'text/html',body:`<!doctype html><meta charset="utf-8"><style>body{margin:30px;background:#eef3f9;font:16px sans-serif}#movie_player{position:relative;width:640px;height:360px;background:#18395d}video{width:100%;height:100%}.ytp-caption-window-container{position:absolute;bottom:20px;color:white}</style><h1>Controlled YouTube fixture</h1><div id="movie_player" class="html5-video-player"><video src="/synthetic.webm" controls preload="auto"></video><div class="ytp-caption-window-container"></div></div><script>
 window.fixtureMode=new URL(location.href).searchParams.get('v')==='fixture-dom'?'dom':'manual';
-document.querySelector('#movie_player').getPlayerResponse=()=>{const id=new URL(location.href).searchParams.get('v');return {videoDetails:{videoId:id},captions:{playerCaptionsTracklistRenderer:{captionTracks:window.fixtureMode==='dom'?[]:[{languageCode:'en',baseUrl:'https://www.youtube.com/api/timedtext?lang=en&v='+id},...(window.fixtureMode==='manual'?[{languageCode:'zh-Hans',baseUrl:'https://www.youtube.com/api/timedtext?lang=zh&v='+id}]:[])]}}};};
+document.querySelector('#movie_player').getPlayerResponse=()=>{const id=new URL(location.href).searchParams.get('v')||location.pathname.split('/')[2];return {videoDetails:{videoId:id},captions:{playerCaptionsTracklistRenderer:{captionTracks:window.fixtureMode==='dom'?[]:[{languageCode:'en',baseUrl:'https://www.youtube.com/api/timedtext?lang=en&v='+id},...(window.fixtureMode==='manual'?[{languageCode:'zh-Hans',baseUrl:'https://www.youtube.com/api/timedtext?lang=zh&v='+id}]:[])]}}};};
 </script>`});
   });
   const yt=await context.newPage();
@@ -228,11 +258,22 @@ document.querySelector('#movie_player').getPlayerResponse=()=>{const id=new URL(
   await yt.locator('.ytp-caption-segment').evaluate(el=>{el.textContent='Fresh caption.';});
   await yt.locator('.lt-youtube-overlay').getByText('中文：Fresh caption.',{exact:true}).waitFor();
   checks.push('YouTube DOM fallback: a slow old translation cannot reappear after seeking; a new caption translates normally.');
+  const embedParent=await context.newPage();
+  await embedParent.goto(endpoint.replace('/translate','/embed-parent'));
+  await embedParent.evaluate(()=>{const iframe=document.createElement('iframe');iframe.src='https://www.youtube.com/embed/fixture-embed';iframe.id='youtube-embed';iframe.width='680';iframe.height='420';document.body.append(iframe);});
+  const embed=embedParent.frameLocator('#youtube-embed');
+  await embed.locator('video').evaluate(v=>new Promise(resolve=>{if(v.readyState>=2)resolve();else v.addEventListener('loadeddata',resolve,{once:true});}));
+  await embed.locator('video').evaluate(v=>{v.currentTime=.7;});
+  await embed.locator('.lt-youtube-overlay').getByText('The first sentence.',{exact:true}).waitFor();
+  await embed.locator('.lt-youtube-overlay').getByText('第一句中文。',{exact:true}).waitFor();
+  assert.equal(await embed.locator('#aside-floating').count(),0);
+  checks.push('The unchanged shipping manifest supplies both MAIN bridge and isolated controller to a cross-origin YouTube embed, with working bilingual media-clock captions.');
+  await embedParent.close();
   const {testPageLifecycle}=await import('./page-lifecycle-test.mjs');
   checks.push(...await testPageLifecycle(context));
   assert.deepEqual(errors,[],'No page JavaScript errors');
   const report={date:new Date().toISOString(),browser:context.browser()?.version(),checks,errors,
-    scope:'Shipping manifest checked separately. Functional fixtures use a disposable copy with all web host access pregranted; native permission approval remains a manual release check.'};
+    scope:'Exact shipping manifest and bundles in isolated browser profiles. Controlled HTTP/video fixtures; no runtime permission pregrant or manifest rewriting.'};
   await writeFile(join(out,'report.json'),JSON.stringify(report,null,2));
   console.log(JSON.stringify(report,null,2));
 } finally {

@@ -19,7 +19,10 @@ for (const dir of ['src', 'tools', 'tests']) for (const file of await walk(join(
 const manifest = JSON.parse(await readFile(join(root,'manifest.json'),'utf8'));
 assert.equal(manifest.manifest_version,3);
 assert.deepEqual(manifest.permissions, ['storage','activeTab','scripting']);
-assert.deepEqual(manifest.host_permissions, ['https://translate.googleapis.com/*']);
+assert.deepEqual(manifest.host_permissions, ['http://*/*','https://*/*']);
+assert.equal(manifest.optional_host_permissions, undefined);
+assert.equal(manifest.options_ui.open_in_tab, true);
+assert.ok(manifest.content_scripts.some(script => script.js.includes('content/index.js') && script.all_frames && script.matches.includes('https://*/*')));
 assert.ok(!JSON.stringify(manifest).includes('web_accessible_resources'));
 for (const n of [16,32,48,128]) {
   const png = await readFile(join(root,manifest.icons[n]));
@@ -27,4 +30,4 @@ for (const n of [16,32,48,128]) {
   assert.equal(png.readUInt32BE(16),n);
   assert.equal(png.readUInt32BE(20),n);
 }
-console.log('Syntax, minimal permissions and PNG dimensions passed.');
+console.log('Syntax, install-time website access, persistent settings page and PNG dimensions passed.');

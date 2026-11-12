@@ -43,7 +43,14 @@ test('endpoint validation blocks credential/query/hash/plain remote HTTP and sup
 });
 
 test('normalization retains only supported settings and never trusts stored booleans or service names', () => {
-  assert.deepEqual(normalizeSettings({ autoTranslate: 'true', youtubeEnabled: false, service: 'secret-service', foreign: 'ignored' }), { autoTranslate: false, youtubeEnabled: false, service: 'google', endpoint: '', apiKey: '', model: '', preset: 'custom' });
+  const normalized = normalizeSettings({ autoTranslate: 'true', youtubeEnabled: false, service: 'secret-service', foreign: 'ignored' });
+  assert.equal(normalized.autoTranslate, false);
+  assert.equal(normalized.youtubeEnabled, false);
+  assert.equal(normalized.service, 'bing');
+  assert.equal(normalized.foreign, undefined);
+  assert.equal(normalized.floatingEnabled, true);
+  assert.equal(normalized.youtubeHumanPreferred, true);
+  assert.equal(normalized.youtubePreTranslation, true);
 });
 
 test('oversized/empty text never leaves the browser', async () => {
@@ -264,14 +271,13 @@ test('AI cache and in-flight deduplication separate model IDs and presets', asyn
   assert.equal(calls, 3);
 });
 
-test('settings persist the seven supported fields and validate AI credentials on save', async () => {
-  assert.deepEqual(Object.keys(DEFAULT_SETTINGS).sort(), ['apiKey', 'autoTranslate', 'endpoint', 'model', 'preset', 'service', 'youtubeEnabled']);
+test('settings persist supported preferences and validate AI credentials before activation', async () => {
   const originalChrome = globalThis.chrome;
   let stored = { ...DEFAULT_SETTINGS };
   globalThis.chrome = { storage: { local: { get: async () => ({ ...stored }), set: async value => { stored = { ...value }; } } } };
   try {
     await assert.rejects(saveSettings({ ...aiSettings.anthropic, apiKey: '' }), /密钥/);
-    assert.equal(stored.service, 'google', 'invalid configuration must not be saved');
+    assert.equal(stored.service, 'bing', 'invalid configuration must not be saved');
     await saveSettings({ ...aiSettings.openai, apiKey: '', model: '  my-own-model  ', preset: 'provider-test' });
     assert.equal((await loadSettings()).model, 'my-own-model');
     assert.equal(stored.service, 'openai');
