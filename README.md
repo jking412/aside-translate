@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/jking412/aside-translate/actions/workflows/ci.yml"><img src="https://github.com/jking412/aside-translate/actions/workflows/ci.yml/badge.svg?branch=main" alt="构建与测试"></a>
-  <a href="https://github.com/jking412/aside-translate/releases/tag/v0.2.0"><img src="https://img.shields.io/badge/版本-v0.2.0%20预发布-blue" alt="v0.2.0 预发布"></a>
+  <a href="https://github.com/jking412/aside-translate/releases/tag/v0.2.1"><img src="https://img.shields.io/badge/版本-v0.2.1%20预发布-blue" alt="v0.2.1 预发布"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-MIT-green" alt="MIT 许可证"></a>
 </p>
 
@@ -18,7 +18,7 @@
 
 旁译是原生 JavaScript 编写的轻量 Chromium MV3 扩展，无账户和云同步，运行时没有 npm 依赖，也无需常驻 Node 服务。
 
-> **v0.2.0：** 按所供原版 1.34.4 重新对照网页双语段落、YouTube 原生字幕取轨、供应商配置和悬浮入口。具体来源与修复见[原版对照](docs/parity.md)。本次真实 YouTube 采样中，新版与原版均收到空字幕正文，在线字幕验收仍未通过，继续以预发布提供；受控与真实网络结果分别见[验证状态](#验证状态)。
+> **v0.2.1：** 修复英文自动字幕零宽分隔显示为单词粘连的问题，保留实际词内碎片、缩写与标点。核心功能按所供原版 1.34.4 重新对照网页双语段落、YouTube 原生字幕取轨、供应商配置和悬浮入口。具体来源与修复见[原版对照](docs/parity.md)。本次真实 YouTube 采样中，新版与原版均收到空字幕正文，在线字幕验收仍未通过，继续以预发布提供；受控与真实网络结果分别见[验证状态](#验证状态)。
 
 ## 下载安装
 
@@ -26,9 +26,9 @@
 
 | 下载 | 用途 |
 | --- | --- |
-| [下载旁译 v0.2.0 扩展 ZIP](https://github.com/jking412/aside-translate/releases/download/v0.2.0/aside-translate-0.2.0.zip) | Chrome / Edge 等桌面 Chromium 浏览器，共用一个包 |
-| [下载 SHA-256 校验文件](https://github.com/jking412/aside-translate/releases/download/v0.2.0/aside-translate-0.2.0.zip.sha256) | 校验 ZIP 文件完整性 |
-| [查看版本说明与已知限制](https://github.com/jking412/aside-translate/releases/tag/v0.2.0) | v0.2.0 预发布页面 |
+| [下载旁译 v0.2.1 扩展 ZIP](https://github.com/jking412/aside-translate/releases/download/v0.2.1/aside-translate-0.2.1.zip) | Chrome / Edge 等桌面 Chromium 浏览器，共用一个包 |
+| [下载 SHA-256 校验文件](https://github.com/jking412/aside-translate/releases/download/v0.2.1/aside-translate-0.2.1.zip.sha256) | 校验 ZIP 文件完整性 |
+| [查看版本说明与已知限制](https://github.com/jking412/aside-translate/releases/tag/v0.2.1) | v0.2.1 预发布页面 |
 
 1. 下载上表 ZIP，解压到固定文件夹；文件夹内应直接包含 `manifest.json`。
 2. Chrome 打开 `chrome://extensions`，Edge 打开 `edge://extensions`，开启“开发者模式”。

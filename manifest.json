@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "旁译 Aside",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "一键翻译与恢复网页，按视频时间显示 YouTube 原文与中文双语字幕。",
   "minimum_chrome_version": "120",
   "permissions": [

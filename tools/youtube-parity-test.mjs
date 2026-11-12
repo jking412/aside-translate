@@ -41,7 +41,10 @@ try {
   context = await chromium.launchPersistentContext(await mkdtemp(join(out, 'profile-')), { channel: 'chromium', executablePath: process.env.ASIDE_CHROMIUM_PATH || undefined, headless: true, viewport: { width: 1100, height: 850 }, args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`] });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   await worker.evaluate(endpoint => chrome.storage.local.set({ service: 'libre', endpoint, youtubeEnabled: true, youtubeHumanPreferred: true, youtubePreTranslation: true }), `http://127.0.0.1:${server.address().port}/translate`);
-  const track = id => ({ events: [
+  const track = id => id === 'native-spacing' ? { events: [{ tStartMs: 300, dDurationMs: 1100, segs: [
+    { utf8: 'what', tOffsetMs: 0 }, { utf8: '\u200b', tOffsetMs: 80 },
+    { utf8: 'you', tOffsetMs: 160 }, { utf8: ' can', tOffsetMs: 300 },
+  ] }] } : ({ events: [
     { tStartMs: 300, dDurationMs: 1100, segs: [{ utf8: id === 'native-two' ? 'Fresh video sentence.' : 'Native first sentence.' }] },
     { tStartMs: 1400, dDurationMs: 1400, segs: [{ utf8: 'Native second sentence.' }] },
     { tStartMs: 3200, dDurationMs: 1800, segs: [{ utf8: 'Native final sentence.' }] },
@@ -59,9 +62,9 @@ const player=document.querySelector('#movie_player'),video=player.querySelector(
 Object.defineProperties(video,{currentTime:{get:()=>window.mediaTime,set:value=>{video.dispatchEvent(new Event('seeking'));window.mediaTime=value;video.dispatchEvent(new Event('seeked'));}},duration:{get:()=>100},paused:{get:()=>true},readyState:{get:()=>4},seeking:{get:()=>false}});
 const id=()=>new URL(location.href).searchParams.get('v');
 player.getCurrentTime=()=>video.currentTime+window.clockOffset;player.getDuration=()=>100;
-player.getPlayerResponse=()=>({videoDetails:{videoId:id()},captions:{playerCaptionsTracklistRenderer:{defaultAudioTrackIndex:0,audioTracks:[{audioTrackId:'en.0'}],captionTracks:[{languageCode:'en',vssId:'.en',baseUrl:'https://www.youtube.com/api/timedtext?v='+id()+'&lang=en'}]}}});
+player.getPlayerResponse=()=>({videoDetails:{videoId:id()},captions:{playerCaptionsTracklistRenderer:{defaultAudioTrackIndex:0,audioTracks:[{audioTrackId:'en.0'}],captionTracks:[{languageCode:'en',vssId:'.en',kind:id()==='native-spacing'?'asr':'',baseUrl:'https://www.youtube.com/api/timedtext?v='+id()+'&lang=en'}]}}});
 player.getOption=()=>({languageCode:'en',vssId:'.en'});player.setOption=()=>{};
-window.requestNative=()=>{const url='/api/timedtext?native=1&v='+id()+'&lang=en&fmt='+(window.transport==='xml'?'srv3':'json3');if(window.transport==='fetch')return fetch(url);const xhr=new XMLHttpRequest();xhr.open('GET',url);xhr.send();};
+window.requestNative=()=>{const url='/api/timedtext?native=1&v='+id()+'&lang=en'+(id()==='native-spacing'?'&kind=asr':'')+'&fmt='+(window.transport==='xml'?'srv3':'json3');if(window.transport==='fetch')return fetch(url);const xhr=new XMLHttpRequest();xhr.open('GET',url);xhr.send();};
 cc.onclick=()=>{const active=cc.getAttribute('aria-pressed')!=='true';cc.setAttribute('aria-pressed',String(active));if(active)requestNative();};
 </script>` });
   });
@@ -104,6 +107,12 @@ cc.onclick=()=>{const active=cc.getAttribute('aria-pressed')!=='true';cc.setAttr
   await page.waitForTimeout(100);
   assert.equal(await page.locator('#movie_player').getAttribute('data-lt-caption-owner'), null);
   report.checks.push('An empty/expired extension caption restores native caption visibility rather than hiding a failed native fallback.');
+  await page.evaluate(() => { document.dispatchEvent(new Event('yt-navigate-start')); history.pushState({}, '', '/watch?v=native-spacing'); window.transport = 'xhr'; window.mediaTime = .7; document.dispatchEvent(new Event('yt-navigate-finish')); requestNative(); });
+  await page.locator('.lt-youtube-overlay .source').filter({ hasText: /^what you can$/ }).waitFor({ timeout: 7000 });
+  await page.locator('.lt-youtube-overlay .translation').filter({ hasText: /^已配置服务：what you can$/ }).waitFor({ timeout: 7000 });
+  assert.ok(calls.includes('what you can'), 'The selected service receives visible word boundaries too');
+  assert.equal(await page.locator('.lt-youtube-overlay .source').textContent(), 'what you can');
+  report.checks.push('Native ASR zero-width separators become visible spaces in both the English row and the chosen-service request.');
   assert.deepEqual(report.errors, []);
   report.ok = true;
 } catch (error) { report.ok = false; report.failure = error.message.split('\n')[0]; throw error; }

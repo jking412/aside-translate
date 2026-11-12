@@ -9,7 +9,9 @@ export function englishWordCues(events) {
   let pendingSpace = false;
   for (const event of spoken) {
     for (const segment of event.segs) {
-      let value = String(segment?.utf8 || '').replace(/\n/g, ' ');
+      // Match captionText's separator policy before trimming or combining
+      // fragments. U+200B may be the only boundary between two spoken words.
+      let value = String(segment?.utf8 || '').replace(/[\s\u200b]+/g, ' ');
       if (!value.trim()) { pendingSpace = true; continue; }
       if (pendingSpace && !/^\s/.test(value)) value = ' ' + value;
       pendingSpace = false;
