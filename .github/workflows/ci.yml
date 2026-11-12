@@ -23,3 +23,45 @@ jobs:
         with:
           name: aside-translate
           path: release/
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v0.')
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: aside-translate
+          path: release
+      - name: Validate version and release notes
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const read = name => JSON.parse(fs.readFileSync(name, 'utf8'));
+          const tag = process.env.GITHUB_REF_NAME;
+          const version = read('package.json').version;
+          const lock = read('package-lock.json');
+          assert.equal(tag, 'v' + version, 'Tag and package version must agree');
+          assert.equal(read('manifest.json').version, version, 'Manifest version must agree');
+          assert.equal(lock.version, version, 'Lockfile version must agree');
+          assert.equal(lock.packages[''].version, version, 'Lockfile root package must agree');
+          assert.ok(fs.existsSync('docs/releases/' + tag + '.md'), 'Release notes required');
+          const zip = 'aside-translate-' + version + '.zip';
+          assert.deepEqual(fs.readdirSync('release').sort(), [zip, zip + '.sha256'].sort(), 'Exactly the expected version assets required');
+          NODE
+      - name: Verify release checksums
+        working-directory: release
+        run: sha256sum -c *.sha256
+      - name: Publish preview release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/*.zip release/*.sha256 --draft --prerelease --verify-tag --title "旁译 Aside $GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"
+          test "$(gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets | length')" -eq 2
+          gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease --latest=false
