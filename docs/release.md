@@ -1,6 +1,6 @@
 # 发布流程
 
-当前版本为 [v0.2.1 预发布](https://github.com/jking412/aside-translate/releases/tag/v0.2.1)。预发布期间使用具体版本链接，不能依赖排除预发布的 `/releases/latest`。
+当前版本为 [v0.3.0 预发布](https://github.com/jking412/aside-translate/releases/tag/v0.3.0)。预发布期间使用具体版本链接，不能依赖排除预发布的 `/releases/latest`。
 
 ## 发布前
 
@@ -14,7 +14,7 @@
 
 GitHub仓库为 [jking412/aside-translate](https://github.com/jking412/aside-translate)。当前工作流仅自动发布 **`v0.*` 早期版本标签**，全部标记为预发布；稳定版发布策略需要另行明确后更新。
 
-1. 提交并推送通过审查的main，创建与包版本一致的标签（如 `v0.2.1`），然后推送该标签，不移动已公开标签、不强推。
+1. 提交并推送通过审查的main，创建与包版本一致的标签（如 `v0.3.0`），然后推送该标签，不移动已公开标签、不强推。
 2. `Verify extension` 工作流在标签提交上重新运行完整受控验证并构建ZIP。发布任务依赖验证任务成功，仅该任务具有 `contents: write` 权限。
 3. 发布任务下载本次构建产物，检查标签/版本/发布说明，运行 `sha256sum -c`，以仓库内的说明文件创建草稿并上传ZIP和校验文件。确认两个附件已上传后，再公开为预发布。
 4. 若同名Release已存在，创建步骤会失败，不会自动覆盖已公开附件；检查实际状态后再处理，避免把不同构建混入同一版本。

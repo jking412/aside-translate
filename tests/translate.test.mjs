@@ -49,6 +49,7 @@ test('normalization retains only supported settings and never trusts stored bool
   assert.equal(normalized.service, 'bing');
   assert.equal(normalized.foreign, undefined);
   assert.equal(normalized.floatingEnabled, true);
+  assert.equal(normalized.selectionEnabled, true);
   assert.equal(normalized.youtubeHumanPreferred, true);
   assert.equal(normalized.youtubePreTranslation, true);
 });

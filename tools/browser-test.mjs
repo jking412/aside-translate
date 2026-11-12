@@ -65,6 +65,7 @@ try {
   assert.equal(await popup.locator('#translate').isDisabled(),true);
   assert.equal(await popup.locator('#auto-translate').isChecked(),false);
   assert.equal(await popup.locator('#youtube-enabled').isChecked(),true);
+  assert.equal(await popup.locator('#selection-enabled').isChecked(),true);
   assert.equal(await popup.locator('#service-details').getAttribute('open'),null);
   await popup.setViewportSize({width:360,height:640});
   await popup.screenshot({path:join(out,'popup-shipping.png')});
@@ -73,7 +74,7 @@ try {
   await popup.locator('#endpoint').fill('http://remote.example/translate');
   await popup.locator('#save-service').click();
   await popup.locator('#settings-status').filter({hasText:'HTTPS'}).waitFor();
-  checks.push('Shipping popup: Chinese defaults, two switches, folded service settings, restricted page and invalid URL feedback.');
+  checks.push('Shipping popup: Chinese defaults, page/selection/subtitle preferences, folded service settings, restricted page and invalid URL feedback.');
   for(const protocol of ['openai','anthropic','gemini']) {
     await popup.locator('#service').selectOption(protocol);
     assert.equal(await popup.locator('#model').isVisible(),true);
@@ -101,6 +102,9 @@ try {
   await page.locator('#dynamic').filter({hasText:'中文：New dynamic text.'}).waitFor();
   await configure(worker,{youtubeEnabled:false});
   assert.equal((await message(worker,page,'PAGE_STATUS')).translated,true);
+  await configure(worker,{selectionEnabled:false});
+  assert.equal((await message(worker,page,'PAGE_STATUS')).translated,true,'Selection preferences preserve manual webpage translation');
+  await configure(worker,{selectionEnabled:true});
   await page.screenshot({path:join(out,'page-translated.png')});
   await message(worker,page,'PAGE_TOGGLE');
   assert.equal(await page.locator('h1').textContent(),'Hello world.');

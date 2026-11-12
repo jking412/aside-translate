@@ -53,7 +53,7 @@ byId('open-settings').addEventListener('click', async () => {
   try { await chrome.runtime.sendMessage({ type: 'OPEN_SETTINGS' }); }
   catch { status('preference-status', '无法打开设置页，请从扩展管理页进入“扩展程序选项”。', true); }
 });
-for (const [id, key, name] of [['auto-translate', 'autoTranslate', '自动翻译'], ['youtube-enabled', 'youtubeEnabled', 'YouTube 双语字幕']]) {
+for (const [id, key, name] of [['auto-translate', 'autoTranslate', '自动翻译'], ['youtube-enabled', 'youtubeEnabled', 'YouTube 双语字幕'], ['selection-enabled', 'selectionEnabled', '划词翻译']]) {
   const control = byId(id); control.disabled = true;
   control.addEventListener('change', async () => {
     const previous = !control.checked; control.disabled = true;
@@ -66,9 +66,10 @@ try {
   const settings = await loadSettings();
   byId('auto-translate').checked = settings.autoTranslate;
   byId('youtube-enabled').checked = settings.youtubeEnabled;
+  byId('selection-enabled').checked = settings.selectionEnabled;
   byId('service-name').textContent = SERVICE_NAMES[settings.service];
   await mountServiceEditor(byId('service-editor'), { settings, onSaved: async saved => { byId('service-name').textContent = SERVICE_NAMES[saved.service]; await notifyPage(); } });
-  byId('auto-translate').disabled = false; byId('youtube-enabled').disabled = false;
+  byId('auto-translate').disabled = false; byId('youtube-enabled').disabled = false; byId('selection-enabled').disabled = false;
 } catch { status('preference-status', '无法读取设置，请重新加载扩展。', true); }
 try { await connectPage(); } catch { status('page-status', '无法读取当前页面，请重新打开弹窗。', true); }
 const timer = setInterval(() => { void refresh(); }, 750);

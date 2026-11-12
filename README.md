@@ -4,11 +4,11 @@
 
 <h1 align="center">旁译 Aside</h1>
 
-<p align="center">网页翻译与 YouTube 双语字幕。默认中文，只保留阅读需要的两项功能。</p>
+<p align="center">网页双语、划词翻译与 YouTube 双语字幕。选一段文字，也能单独翻译。</p>
 
 <p align="center">
   <a href="https://github.com/jking412/aside-translate/actions/workflows/ci.yml"><img src="https://github.com/jking412/aside-translate/actions/workflows/ci.yml/badge.svg?branch=main" alt="构建与测试"></a>
-  <a href="https://github.com/jking412/aside-translate/releases/tag/v0.2.1"><img src="https://img.shields.io/badge/版本-v0.2.1%20预发布-blue" alt="v0.2.1 预发布"></a>
+  <a href="https://github.com/jking412/aside-translate/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/版本-v0.3.0%20预发布-blue" alt="v0.3.0 预发布"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/许可证-MIT-green" alt="MIT 许可证"></a>
 </p>
 
@@ -18,7 +18,7 @@
 
 旁译是原生 JavaScript 编写的轻量 Chromium MV3 扩展，无账户和云同步，运行时没有 npm 依赖，也无需常驻 Node 服务。
 
-> **v0.2.1：** 修复英文自动字幕零宽分隔显示为单词粘连的问题，保留实际词内碎片、缩写与标点。核心功能按所供原版 1.34.4 重新对照网页双语段落、YouTube 原生字幕取轨、供应商配置和悬浮入口。具体来源与修复见[原版对照](docs/parity.md)。本次真实 YouTube 采样中，新版与原版均收到空字幕正文，在线字幕验收仍未通过，继续以预发布提供；受控与真实网络结果分别见[验证状态](#验证状态)。
+> **v0.3.0：** 新增划词翻译：选中文字，在旁边点击“翻译”，用当前服务查看原文和中文译文；默认开启，可在弹窗或设置页关闭。延续此前的网页双语、字幕与空格修复。真实 YouTube 在线字幕仍受原版和新版共同遇到的空响应限制，详见[验证状态](#验证状态)。
 
 ## 下载安装
 
@@ -26,9 +26,9 @@
 
 | 下载 | 用途 |
 | --- | --- |
-| [下载旁译 v0.2.1 扩展 ZIP](https://github.com/jking412/aside-translate/releases/download/v0.2.1/aside-translate-0.2.1.zip) | Chrome / Edge 等桌面 Chromium 浏览器，共用一个包 |
-| [下载 SHA-256 校验文件](https://github.com/jking412/aside-translate/releases/download/v0.2.1/aside-translate-0.2.1.zip.sha256) | 校验 ZIP 文件完整性 |
-| [查看版本说明与已知限制](https://github.com/jking412/aside-translate/releases/tag/v0.2.1) | v0.2.1 预发布页面 |
+| [下载旁译 v0.3.0 扩展 ZIP](https://github.com/jking412/aside-translate/releases/download/v0.3.0/aside-translate-0.3.0.zip) | Chrome / Edge 等桌面 Chromium 浏览器，共用一个包 |
+| [下载 SHA-256 校验文件](https://github.com/jking412/aside-translate/releases/download/v0.3.0/aside-translate-0.3.0.zip.sha256) | 校验 ZIP 文件完整性 |
+| [查看版本说明与已知限制](https://github.com/jking412/aside-translate/releases/tag/v0.3.0) | v0.3.0 预发布页面 |
 
 1. 下载上表 ZIP，解压到固定文件夹；文件夹内应直接包含 `manifest.json`。
 2. Chrome 打开 `chrome://extensions`，Edge 打开 `edge://extensions`，开启“开发者模式”。
@@ -41,6 +41,7 @@
 | 功能 | 使用方式 |
 | --- | --- |
 | **网页翻译** | 保留原文，在段落后显示中文。点击页面悬浮球或工具栏“翻译此页”，再次点击恢复；支持拖动吸边、快捷面板、Alt+A / Alt+W、自动翻译与动态新增段落。 |
+| **划词翻译** | 鼠标选中网页文字后，点击旁边的“翻译”按钮，在浮窗查看原文与中文。单纯选择不会发送请求；支持关闭、Esc、错误重试和长文本分段。 |
 | **YouTube 双语字幕** | 打开有字幕的视频，自动触发 CC 并读取播放器原生字幕；提前翻译、按视频时钟显示原文与中文两行。播放器内可切换，拖动、换片和关闭时清理旧字幕。 |
 
 网页翻译将内联文字合并为完整段落，保留原链接、强调和事件；译文使用安全恢复的对应行内元素。短行紧随原文，长段另起一行，滚动靠近后再翻译。供应商未保留有效格式标记、或单段富文本超过请求上限时，译文安全降为纯文本；原文的链接和事件继续保留。恢复时删除扩展自己的译文，页面应用后来的更新不会被旧快照覆盖。输入框、代码块和播放器区域不参与网页翻译。
@@ -60,13 +61,17 @@
   </tr>
 </table>
 
+<p align="center"><img src="docs/images/selection-controlled.png" alt="选中网页英文后，旁边出现划词翻译浮窗，显示原文和受控结果" width="596"></p>
+
+划词图片使用合成网页与回显测试服务，展示选区和浮窗交互，不代表线上翻译质量。
+
 <p align="center"><img src="docs/images/options-deepseek.png" alt="真实扩展设置页：DeepSeek 官方地址与默认模型已填好，只需输入自己的密钥" width="680"></p>
 
 以上均为本项目自己的截图：弹窗图使用受控 Chrome API 替身；字幕图来自加载真实构建的隔离浏览器，输入是合成数据；DeepSeek 图来自实际扩展设置标签页，密钥为空。**字幕演示图不代表真实 YouTube 在线验收成功。** 原创图标的 [SVG 源文件](assets/icon.svg) 与多尺寸 PNG 均随仓库提供。
 
 ## 翻译服务
 
-网页和字幕共用一个“翻译服务”设置。可在弹窗编辑，或点击“在独立页面配置”打开不会随切页关闭的设置标签页。各供应商的未保存输入即时保留在本机，切到别处找密钥后可继续；点击保存才用于翻译。
+网页、划词和字幕共用一个“翻译服务”设置。可在弹窗编辑，或点击“在独立页面配置”打开不会随切页关闭的设置标签页。各供应商的未保存输入即时保留在本机，切到别处找密钥后可继续；点击保存才用于翻译。
 
 | 服务 | 配置 |
 | --- | --- |
@@ -81,7 +86,7 @@
 
 ## 权限与隐私
 
-- 自动网页翻译默认关闭；所有 HTTP(S) 网站访问在安装时声明，用于网页悬浮入口、翻译和自备服务。使用两项功能、开启自动翻译或保存服务时均不再弹出权限申请。
+- 自动网页翻译默认关闭；所有 HTTP(S) 网站访问在安装时声明，用于网页悬浮入口、网页/划词翻译和自备服务。使用翻译功能、开启自动翻译或保存服务时均不再弹出权限申请。
 - 浏览器仍可能在安装或升级增加权限时告知一次。可在扩展详情限制网站访问；关闭自动翻译会恢复已连接网页。
 - **文字会发送到所选翻译服务。** 自动翻译可能发送页面中的个人信息；在敏感页面使用前，请先确认是否允许发送。
 - 设置、未保存草稿与密钥仅存本机 `chrome.storage.local`，不启用同步，不持久化网页正文；密钥在本地未加密。AI 请求可能产生服务商费用。
@@ -120,7 +125,7 @@ npm run verify
 npm run package
 ```
 
-`verify` 包含语法/权限/图标检查、单元测试、构建和隔离浏览器测试。真实网络探测单独运行 `npm run test:online`，无真实双语字幕时返回非零。已有独立 Chromium 时，可将 `ASIDE_CHROMIUM_PATH` 设为其可执行文件绝对路径。CI 使用固定版本官方 Playwright 容器。
+`verify` 包含语法/权限/图标检查、单元测试、构建、隔离浏览器测试及划词交互检查。真实网络探测单独运行 `npm run test:online`，无真实双语字幕时返回非零。已有独立 Chromium 时，可将 `ASIDE_CHROMIUM_PATH` 设为其可执行文件绝对路径。CI 使用固定版本官方 Playwright 容器。
 
 | 目录 | 职责 |
 | --- | --- |

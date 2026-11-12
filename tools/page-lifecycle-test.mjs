@@ -15,7 +15,7 @@ async function bundle(entry, exposeClass = false) {
 
 async function makeChrome(page, { delayedSettings = false } = {}) {
   await page.evaluate(({ delayedSettings }) => {
-    globalThis.testSettings = { autoTranslate: false, youtubeEnabled: true, floatingEnabled: false, service: 'google', endpoint: '', apiKey: '' };
+    globalThis.testSettings = { autoTranslate: false, youtubeEnabled: true, floatingEnabled: false, selectionEnabled: false, service: 'google', endpoint: '', apiKey: '' };
     globalThis.testMessages = [];
     globalThis.testChanges = [];
     globalThis.testStorageReads = 0;

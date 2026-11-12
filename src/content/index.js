@@ -2,6 +2,7 @@ import { loadSettings } from '../shared/settings.js';
 import { PageTranslator } from './page.js';
 import { YoutubeSubtitles } from './youtube.js';
 import { FloatingControls } from './floating.js';
+import { SelectionTranslator } from './selection.js';
 
 if (!globalThis.__asideContent) {
   globalThis.__asideContent = true;
@@ -27,6 +28,7 @@ if (!globalThis.__asideContent) {
     }
   };
   const page = new PageTranslator({ translate, onChange: () => floating?.update() });
+  const selection = new SelectionTranslator({ translate });
   const youtube = location.hostname === 'www.youtube.com'
     ? new YoutubeSubtitles({ translate, onStatus: status => { youtubeStatus = status; floating?.update(); } }) : null;
   const status = () => ({ ...page.status, youtubeStatus });
@@ -43,11 +45,13 @@ if (!globalThis.__asideContent) {
     if (message?.type === 'PAGE_STATUS') { respond(status()); return; }
     if (message?.type === 'PAGE_TOGGLE') {
       pageActionRevision++;
+      selection.reset();
       if (page.enabled) page.restore(); else page.start();
       respond(status());
     }
     if (message?.type === 'PAGE_SET_ENABLED') {
       pageActionRevision++;
+      selection.reset();
       if (message.enabled) page.start(); else page.restore();
       respond(status());
     }
@@ -58,6 +62,7 @@ if (!globalThis.__asideContent) {
       const settings = await loadSettings();
       const providerChanged = changes && ['service', 'endpoint', 'apiKey', 'model', 'preset'].some(key => key in changes);
       if (providerChanged) {
+        selection.reset();
         const enabled = page.enabled;
         page.restore();
         if (enabled) page.start();
@@ -67,6 +72,7 @@ if (!globalThis.__asideContent) {
       youtube?.setPreferences(settings);
       youtube?.setEnabled(settings.youtubeEnabled);
       if (settings.floatingEnabled !== false) floating?.start(); else floating?.stop();
+      if (settings.selectionEnabled !== false) selection.start(); else selection.stop();
       // Subtitle/service preferences preserve manual page translation. A delayed
       // initial read must also preserve a page action performed since it began.
       if ((!changes || 'autoTranslate' in changes) && actionRevision === pageActionRevision) {
@@ -76,7 +82,7 @@ if (!globalThis.__asideContent) {
     return settingsUpdate;
   };
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && ['autoTranslate', 'youtubeEnabled', 'youtubeHumanPreferred', 'youtubePreTranslation', 'floatingEnabled', 'service', 'endpoint', 'apiKey', 'model', 'preset'].some(key => key in changes)) {
+    if (area === 'local' && ['autoTranslate', 'youtubeEnabled', 'youtubeHumanPreferred', 'youtubePreTranslation', 'floatingEnabled', 'selectionEnabled', 'service', 'endpoint', 'apiKey', 'model', 'preset'].some(key => key in changes)) {
       applySettings(changes).catch(() => {});
     }
   });

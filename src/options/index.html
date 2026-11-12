@@ -1,15 +1,16 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>旁译 Aside · 设置</title><link rel="stylesheet" href="../popup/style.css" /><link rel="stylesheet" href="style.css" /></head>
 <body class="settings-page"><main class="settings-shell">
-<header class="brand"><img src="../assets/icon-48.png" width="40" height="40" alt="" /><div><h1>旁译 Aside 设置</h1><p>网页翻译与 YouTube 双语字幕</p></div></header>
+<header class="brand"><img src="../assets/icon-48.png" width="40" height="40" alt="" /><div><h1>旁译 Aside 设置</h1><p>网页翻译、划词翻译与 YouTube 双语字幕</p></div></header>
 <p class="intro">这个页面会保持打开。可以切到服务商页面获取密钥后再回来；未保存的服务配置自动保留在本机。</p>
 <section aria-labelledby="preferences-title"><h2 id="preferences-title">翻译行为</h2>
 <label class="feature" for="auto-translate"><span><span class="feature-title">自动翻译网页</span><span class="feature-note">打开普通网页时自动翻译</span></span><input id="auto-translate" type="checkbox" role="switch" disabled /></label>
+<label class="feature" for="selection-enabled"><span><span class="feature-title">划词翻译</span><span class="feature-note">选中文字后显示按钮，点击查看中文译文</span></span><input id="selection-enabled" type="checkbox" role="switch" disabled /></label>
 <label class="feature" for="youtube-enabled"><span><span class="feature-title">YouTube 双语字幕</span><span class="feature-note">原文与中文分行显示</span></span><input id="youtube-enabled" type="checkbox" role="switch" disabled /></label>
 <label class="feature" for="youtube-human"><span><span class="feature-title">优先使用人工中文字幕</span><span class="feature-note">无可用人工轨时仍使用所选翻译服务</span></span><input id="youtube-human" type="checkbox" role="switch" disabled /></label>
 <label class="feature" for="youtube-prefetch"><span><span class="feature-title">预先翻译视频字幕</span><span class="feature-note">提前请求接下来几句，减少等待</span></span><input id="youtube-prefetch" type="checkbox" role="switch" disabled /></label>
 <label class="feature" for="floating-enabled"><span><span class="feature-title">网页悬浮入口</span><span class="feature-note">拖动贴边，一键翻译与恢复，展开快捷面板</span></span><input id="floating-enabled" type="checkbox" role="switch" disabled /></label>
 <p id="preference-status" class="status" role="status" aria-live="polite"></p></section>
-<section aria-labelledby="service-title"><h2 id="service-title">翻译服务</h2><p class="help">网页与字幕共用所选服务。浏览器在安装时统一告知网站访问权限，不会为每个服务重复弹出授权。</p><div id="service-editor"></div></section>
+<section aria-labelledby="service-title"><h2 id="service-title">翻译服务</h2><p class="help">网页、划词与字幕共用所选服务。浏览器在安装时统一告知网站访问权限，不会为每个服务重复弹出授权。</p><div id="service-editor"></div></section>
 <footer class="help">配置与草稿密钥仅存于本机。翻译内容发送到所选服务；请勿把密钥、配置导出或私人网页内容提交到公开问题报告。</footer>
 </main><script type="module" src="index.js"></script></body></html>
