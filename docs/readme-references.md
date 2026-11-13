@@ -43,3 +43,7 @@ v0.1.0 应链接 [具体版本页](https://github.com/jking412/aside-translate/r
 [Sniffnet](https://github.com/GyulyVGC/sniffnet/blob/main/LICENSE-MIT) 提供 MIT 许可文件，仓库还标示 Apache-2.0；[GitPoint](https://github.com/gitpoint/git-point/blob/master/LICENSE) 使用 MIT。[KISS Translator](https://github.com/fishjar/kiss-translator/blob/dev/LICENSE) 标示 GPL-3.0；[Read Frog](https://github.com/mengxi-ream/read-frog/blob/main/README.md#-contribute) 声明 GPLv3 与商业双重许可。
 
 本次仅借鉴常见章节顺序、下载优先和图片说明方法，没有复制这些项目的段落、HTML 模板、徽章源文件、图标、截图或代码。保留以上出处用于说明编辑思路；如将来实际复用内容或素材，应逐项核对其具体许可与归属，不能因仓库公开或被 awesome-readme 收录就直接使用。
+
+## 推广首页调整（2026-11-13）
+
+参考 [LocalSend](https://github.com/localsend/localsend/blob/main/README.md)、[Immich](https://github.com/immich-app/immich/blob/main/README.md)、[FreeTube](https://github.com/FreeTubeApp/FreeTube/blob/development/README.md) 的产品介绍、截图和主下载入口组织。README 按用途、安装、翻译服务、隐私、常见问题与开发呈现。校验文件保留在 Release，已有测试边界保留在 verification.md。原有 selection-controlled.png 和 subtitles-controlled.png 是合成输入的交互示例，本次首页不再展示；DeepSeek 截图跟随独立服务入口更新。正文不添加在线字幕或云模型真实鉴权的验收结论。

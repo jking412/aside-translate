@@ -1,6 +1,6 @@
 # 发布流程
 
-当前版本为 [v0.3.0 预发布](https://github.com/jking412/aside-translate/releases/tag/v0.3.0)。预发布期间使用具体版本链接，不能依赖排除预发布的 `/releases/latest`。
+当前版本为 [v0.3.1 预发布](https://github.com/jking412/aside-translate/releases/tag/v0.3.1)。预发布期间使用具体版本链接，不能依赖排除预发布的 `/releases/latest`。
 
 ## 发布前
 

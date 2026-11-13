@@ -64,41 +64,43 @@ try {
     };
   });
   let page = await popup();
-  await check('DeepSeek has a verified default model without manual typing', async () => {
+  await check('DeepSeek is the second standalone choice, with defaults and no redundant provider field', async () => {
+    assert.deepEqual(await page.locator('#service option').evaluateAll(nodes => nodes.slice(0, 2).map(n => n.value)), ['bing', 'deepseek']);
     await page.getByRole('button', { name: '翻译此页', exact: true }).click();
     await page.getByRole('button', { name: '恢复原文', exact: true }).click();
     await page.getByRole('button', { name: '翻译此页', exact: true }).waitFor();
-    await page.selectOption('#service', 'openai');
-    await page.selectOption('#provider', 'deepseek');
+    await page.selectOption('#service', 'deepseek');
     assert.equal(await page.locator('#model').inputValue(), 'deepseek-flash');
+    assert.equal(await page.locator('#provider').isVisible(), false);
   });
   await check('Closing popup and reopening preserves unfinished provider, model and key', async () => {
     await page.fill('#model', 'draft-model');
     await page.fill('#api-key', 'fixture-key-keep-this-draft');
     await page.close();
     page = await popup();
-    assert.equal(await page.locator('#service').inputValue(), 'openai');
+    assert.equal(await page.locator('#service').inputValue(), 'deepseek');
     assert.equal(await page.locator('#provider').inputValue(), 'deepseek');
     assert.equal(await page.locator('#model').inputValue(), 'draft-model');
     assert.equal(await page.locator('#api-key').inputValue(), 'fixture-key-keep-this-draft');
   });
   await check('Switching providers preserves each unfinished configuration', async () => {
-    await page.selectOption('#service', 'openai');
-    await page.selectOption('#provider', 'deepseek');
+    await page.selectOption('#service', 'deepseek');
     await page.fill('#model', 'draft-model');
     await page.fill('#api-key', 'fixture-key-deepseek');
+    await page.selectOption('#service', 'openai');
     await page.selectOption('#provider', 'openai');
     await page.fill('#model', 'openai-fixture-model');
     await page.fill('#api-key', 'fixture-key-openai');
-    await page.selectOption('#provider', 'deepseek');
+    await page.selectOption('#service', 'deepseek');
     assert.equal(await page.locator('#model').inputValue(), 'draft-model');
     assert.equal(await page.locator('#api-key').inputValue(), 'fixture-key-deepseek');
+    await page.selectOption('#service', 'openai');
     await page.selectOption('#provider', 'openai');
     assert.equal(await page.locator('#model').inputValue(), 'openai-fixture-model');
     assert.equal(await page.locator('#api-key').inputValue(), 'fixture-key-openai');
   });
   await check('Popup and settings tabs cannot overwrite another field with an older provider snapshot', async () => {
-    await page.selectOption('#service', 'openai'); await page.selectOption('#provider', 'deepseek');
+    await page.selectOption('#service', 'deepseek');
     const parallel = await context.newPage(); await parallel.goto(origin + '/options/index.html');
     await parallel.waitForFunction(() => document.querySelector('#save-service') && !document.querySelector('#save-service').disabled);
     await page.fill('#api-key', 'fixture-cross-tab-fresh-key');
@@ -114,8 +116,7 @@ try {
     assert.equal(response.status(), 200, 'Standalone settings page must exist');
     await settings.locator('#service-form').waitFor();
     await settings.waitForFunction(() => !document.querySelector('#save-service').disabled);
-    await settings.selectOption('#service', 'openai');
-    await settings.selectOption('#provider', 'deepseek');
+    await settings.selectOption('#service', 'deepseek');
     await settings.fill('#api-key', 'fixture-key-settings');
     const other = await context.newPage();
     await other.goto(origin + '/fixture.html');
@@ -132,13 +133,13 @@ try {
     await settings.close(); await other.close();
   });
   await check('Saving applies a valid draft without asking for runtime host permission', async () => {
-    await page.selectOption('#service', 'openai');
-    await page.selectOption('#provider', 'deepseek');
+    await page.selectOption('#service', 'deepseek');
     await page.fill('#model', 'deepseek-flash');
     await page.fill('#api-key', 'fixture-key-save');
     await page.click('#save-service');
     await page.waitForFunction(() => document.querySelector('#settings-status').textContent.includes('已保存'));
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('aside-test-storage')).service), 'openai');
+    assert.equal(await page.locator('#service-name').textContent(), 'DeepSeek');
   });
   await check('Invalid endpoint reports the concrete HTTPS correction while retaining its draft', async () => {
     await page.fill('#endpoint', 'http://not-local.example/translate');
@@ -177,6 +178,16 @@ try {
     assert.equal(await host.count(), 0);
     await fixture.close();
   });
+  await check('Saved DeepSeek configurations from earlier versions reopen in the dedicated entry', async () => {
+    await page.evaluate(() => localStorage.removeItem('aside-test-storage'));
+    await page.evaluate(() => chrome.storage.local.set({service:'openai', preset:'deepseek', endpoint:'https://api.deepseek.com/chat/completions', model:'legacy-model', apiKey:'fixture-legacy-key'}));
+    const legacy = await popup();
+    assert.equal(await legacy.locator('#service').inputValue(), 'deepseek');
+    assert.equal(await legacy.locator('#model').inputValue(), 'legacy-model');
+    assert.equal(await legacy.locator('#api-key').inputValue(), 'fixture-legacy-key');
+    assert.equal(await legacy.locator('#service-name').textContent(), 'DeepSeek');
+    await legacy.close();
+  });
   await check('Saving an unchanged existing custom configuration retains its saved endpoint, model and key', async () => {
     await page.evaluate(() => { localStorage.removeItem('aside-test-storage'); });
     await page.evaluate(() => chrome.storage.local.set({ service: 'openai', preset: 'custom', endpoint: 'https://existing.example/chat/completions', model: 'existing-model', apiKey: 'fixture-existing-key' }));
@@ -195,7 +206,7 @@ try {
   const cleanSettings = await context.newPage(); await cleanSettings.goto(origin + '/options/index.html');
   await cleanSettings.waitForFunction(() => document.querySelector('#save-service') && !document.querySelector('#save-service').disabled);
   await cleanSettings.locator('body').screenshot({ path: resolve(output, 'options-default.png') });
-  await cleanSettings.selectOption('#service', 'openai'); await cleanSettings.selectOption('#provider', 'deepseek');
+  await cleanSettings.selectOption('#service', 'deepseek');
   await cleanSettings.locator('body').screenshot({ path: resolve(output, 'options-deepseek.png') });
   await cleanSettings.close(); await cleanPopup.close();
 } finally {

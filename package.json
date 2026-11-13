@@ -1,6 +1,6 @@
 {
   "name": "aside-translate",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "旁译 Aside：网页双语、划词翻译与 YouTube 双语字幕的轻量浏览器扩展",

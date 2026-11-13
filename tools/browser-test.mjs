@@ -143,15 +143,14 @@ try {
   let settingsPopup=await context.newPage();
   await settingsPopup.goto(`chrome-extension://${id}/popup/index.html`);
   await settingsPopup.locator('#service-details').click();
-  await settingsPopup.locator('#service').selectOption('openai');
-  await settingsPopup.locator('#provider').selectOption('deepseek');
+  await settingsPopup.locator('#service').selectOption('deepseek');
   assert.equal(await settingsPopup.locator('#model').inputValue(),'deepseek-flash');
   await settingsPopup.locator('#api-key').fill('fixture-unfinished-draft');
   await settingsPopup.close();
   settingsPopup=await context.newPage();
   await settingsPopup.goto(`chrome-extension://${id}/popup/index.html`);
   await settingsPopup.locator('#service-details').click();
-  assert.equal(await settingsPopup.locator('#provider').inputValue(),'deepseek');
+  assert.equal(await settingsPopup.locator('#service').inputValue(),'deepseek');
   assert.equal(await settingsPopup.locator('#api-key').inputValue(),'fixture-unfinished-draft');
   assert.equal((await worker.evaluate(()=>chrome.storage.local.get('service'))).service,'libre','Unfinished provider editing never activates it');
   const optionsOpened=context.waitForEvent('page');
@@ -161,7 +160,7 @@ try {
   await realOptions.locator('#api-key').fill('');
   await realOptions.reload();
   await realOptions.waitForFunction(()=>document.getElementById('save-service')?.disabled===false);
-  assert.equal(await realOptions.locator('#provider').inputValue(),'deepseek');
+  assert.equal(await realOptions.locator('#service').inputValue(),'deepseek');
   assert.equal(await realOptions.locator('#api-key').inputValue(),'');
   await realOptions.locator('section').last().screenshot({path:join(out,'options-deepseek.png')});
   await realOptions.close();

@@ -5,6 +5,9 @@ const FIELDS = ['endpoint', 'apiKey', 'model'];
 const SERVICES = new Set(['bing', 'google', 'libre', 'openai', 'anthropic', 'gemini']);
 export const PUBLIC_SERVICES = new Set(['bing', 'google']);
 export const SERVICE_NAMES = { bing: '微软翻译', google: 'Google 公共服务', libre: '自备 LibreTranslate', openai: 'OpenAI 兼容', anthropic: 'Anthropic', gemini: 'Gemini' };
+export function serviceName(settings) {
+  return settings.service === 'openai' && settings.preset === 'deepseek' ? 'DeepSeek' : SERVICE_NAMES[settings.service] || SERVICE_NAMES.bing;
+}
 export function providerPreset(service, preset) { return PROVIDER_PRESETS.find(item => item.id === preset && item.id !== 'custom' && item.service === service); }
 export function firstPreset(service) { return PROVIDER_PRESETS.find(item => item.id !== 'custom' && item.service === service)?.id || 'custom'; }
 export function normalizeDraft(value = {}) {

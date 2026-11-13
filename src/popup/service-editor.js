@@ -5,9 +5,9 @@ import { loadProviderDraftStore, PUBLIC_SERVICES, SERVICE_NAMES, providerPreset 
 const AI = new Set(['openai', 'anthropic', 'gemini']);
 const markup = `
 <form id="service-form">
-  <div class="field"><label for="service">服务</label><select id="service"><option value="bing">微软翻译</option><option value="google">Google 公共服务</option><option value="libre">自备 LibreTranslate</option><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic</option><option value="gemini">Gemini</option></select></div>
+  <div class="field"><label for="service">服务</label><select id="service"><option value="bing">微软翻译（免费）</option><option value="deepseek">DeepSeek</option><option value="google">Google 公共服务</option><option value="libre">自备 LibreTranslate</option><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic</option><option value="gemini">Gemini</option></select></div>
   <div id="ai-fields" hidden>
-    <div class="field"><label for="provider">服务商预设</label><select id="provider"></select></div>
+    <div id="provider-field" class="field"><label for="provider">服务商预设</label><select id="provider"></select></div>
     <label class="field" for="model">模型 ID<input id="model" type="text" list="model-list" placeholder="选择推荐模型或填写自定义模型 ID" autocomplete="off" spellcheck="false" /><datalist id="model-list"></datalist></label>
   </div>
   <div id="custom-fields" hidden>
@@ -42,13 +42,20 @@ export async function mountServiceEditor(container, { settings, onSaved = () => 
   }
   function render(draft) {
     current = { ...draft };
-    field('service').value = draft.service;
+    const deepseek = draft.service === 'openai' && draft.preset === 'deepseek';
+    field('service').value = deepseek ? 'deepseek' : draft.service;
+    field('provider-field').hidden = deepseek;
     const ai = AI.has(draft.service);
     const custom = !PUBLIC_SERVICES.has(draft.service);
     field('provider').replaceChildren();
-    const presets = PROVIDER_PRESETS.filter(p => p.id !== 'custom' && p.service === draft.service);
+    const presets = PROVIDER_PRESETS.filter(p => p.id !== 'custom' && p.id !== 'deepseek' && p.service === draft.service);
     for (const preset of [...presets, { id: 'custom', name: '自定义接口' }]) {
       const option = document.createElement('option'); option.value = preset.id; option.textContent = preset.name; field('provider').append(option);
+    }
+    // The dedicated entry still writes the original openai/deepseek draft keys.
+    if (deepseek) {
+      const option = document.createElement('option');
+      option.value = 'deepseek'; option.textContent = 'DeepSeek'; field('provider').append(option);
     }
     field('provider').value = draft.preset;
     field('endpoint').value = draft.endpoint;
@@ -71,7 +78,10 @@ export async function mountServiceEditor(container, { settings, onSaved = () => 
   }
   field('service').addEventListener('change', () => {
     const service = field('service').value;
-    render(store.get(service, store.lastPreset(service)));
+    const protocol = service === 'deepseek' ? 'openai' : service;
+    let preset = service === 'deepseek' ? 'deepseek' : store.lastPreset(protocol);
+    if (service === 'openai' && preset === 'deepseek') preset = 'openai';
+    render(store.get(protocol, preset));
     void persist();
   });
   field('provider').addEventListener('change', () => {

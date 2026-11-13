@@ -1,8 +1,9 @@
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from '../shared/settings.js';
-import { SERVICE_NAMES } from '../shared/provider-drafts.js';
+import { serviceName } from '../shared/provider-drafts.js';
 import { mountServiceEditor } from './service-editor.js';
 const byId = id => document.getElementById(id);
 const translateButton = byId('translate');
+let serviceSettings = {};
 let activeTab, available = false, pending = false, refreshing = false;
 function status(id, text, error = false) { const node = byId(id); node.textContent = text; node.dataset.error = String(error); if (id === 'preference-status') node.hidden = !text; }
 function renderPage(value) {
@@ -67,8 +68,9 @@ try {
   byId('auto-translate').checked = settings.autoTranslate;
   byId('youtube-enabled').checked = settings.youtubeEnabled;
   byId('selection-enabled').checked = settings.selectionEnabled;
-  byId('service-name').textContent = SERVICE_NAMES[settings.service];
-  await mountServiceEditor(byId('service-editor'), { settings, onSaved: async saved => { byId('service-name').textContent = SERVICE_NAMES[saved.service]; await notifyPage(); } });
+  serviceSettings = settings;
+  byId('service-name').textContent = serviceName(settings);
+  await mountServiceEditor(byId('service-editor'), { settings, onSaved: async saved => { serviceSettings = saved; byId('service-name').textContent = serviceName(saved); await notifyPage(); } });
   byId('auto-translate').disabled = false; byId('youtube-enabled').disabled = false; byId('selection-enabled').disabled = false;
 } catch { status('preference-status', '无法读取设置，请重新加载扩展。', true); }
 try { await connectPage(); } catch { status('page-status', '无法读取当前页面，请重新打开弹窗。', true); }
@@ -78,7 +80,8 @@ window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
 const preferencesChanged = (changes, area) => {
   if (area !== 'local') return;
   for (const [id, key] of [['auto-translate', 'autoTranslate'], ['youtube-enabled', 'youtubeEnabled']]) if (key in changes) byId(id).checked = changes[key].newValue ?? DEFAULT_SETTINGS[key];
-  if ('service' in changes) byId('service-name').textContent = SERVICE_NAMES[changes.service.newValue] || SERVICE_NAMES.bing;
+  for (const key of ['service', 'preset']) if (key in changes) serviceSettings[key] = changes[key].newValue;
+  if ('service' in changes || 'preset' in changes) byId('service-name').textContent = serviceName(serviceSettings);
 };
 chrome.storage.onChanged?.addListener(preferencesChanged);
 window.addEventListener('pagehide', () => chrome.storage.onChanged?.removeListener(preferencesChanged), { once: true });
