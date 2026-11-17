@@ -41,7 +41,33 @@ try {
   context = await chromium.launchPersistentContext(await mkdtemp(join(out, 'profile-')), { channel: 'chromium', executablePath: process.env.ASIDE_CHROMIUM_PATH || undefined, headless: true, viewport: { width: 1100, height: 850 }, args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`] });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   await worker.evaluate(endpoint => chrome.storage.local.set({ service: 'libre', endpoint, youtubeEnabled: true, youtubeHumanPreferred: true, youtubePreTranslation: true }), `http://127.0.0.1:${server.address().port}/translate`);
-  const track = id => id === 'native-spacing' ? { events: [{ tStartMs: 300, dDurationMs: 1100, segs: [
+  // Controlled wire fixtures: an append newline is a word boundary, while
+  // fragments within one event retain their authored adjacency.
+  const nativeRegressions = [
+    { id: 'native-append-spacing', languageCode: 'en', kind: 'asr', expected: 'is that', data: { events: [
+      { tStartMs: 300, dDurationMs: 500, segs: [{ utf8: 'is', tOffsetMs: 0 }] },
+      { tStartMs: 700, dDurationMs: 0, aAppend: 1, segs: [{ utf8: '\n' }] },
+      { tStartMs: 800, dDurationMs: 1100, segs: [{ utf8: 'that' }] },
+    ] } },
+    { id: 'native-word-fragments', languageCode: 'en', kind: 'asr', expected: "international i'm at 3.14", data: { events: [
+      { tStartMs: 300, dDurationMs: 1500, segs: [
+        { utf8: 'inter', tOffsetMs: 0 }, { utf8: 'national', tOffsetMs: 80 },
+        { utf8: ' I', tOffsetMs: 180 }, { utf8: "'m", tOffsetMs: 220 },
+        { utf8: ' at', tOffsetMs: 300 }, { utf8: ' 3', tOffsetMs: 400 },
+        { utf8: '.', tOffsetMs: 450 }, { utf8: '14', tOffsetMs: 500 },
+      ] },
+    ] } },
+    { id: 'native-chinese-fragments', languageCode: 'zh-CN', kind: 'asr', expected: '你好世界', data: { events: [
+      { tStartMs: 300, dDurationMs: 1100, segs: [
+        { utf8: '你', tOffsetMs: 0 }, { utf8: '好', tOffsetMs: 100 }, { utf8: '世界', tOffsetMs: 200 },
+      ] },
+    ] } },
+  ];
+  const fixtureMetadata = Object.fromEntries([
+    ['native-spacing', { languageCode: 'en', kind: 'asr' }],
+    ...nativeRegressions.map(({ id, languageCode, kind }) => [id, { languageCode, kind }]),
+  ]);
+  const track = id => nativeRegressions.find(fixture => fixture.id === id)?.data ?? (id === 'native-spacing' ? { events: [{ tStartMs: 300, dDurationMs: 1100, segs: [
     { utf8: 'what', tOffsetMs: 0 }, { utf8: '\u200b', tOffsetMs: 80 },
     { utf8: 'you', tOffsetMs: 160 }, { utf8: ' can', tOffsetMs: 300 },
   ] }] } : ({ events: [
@@ -49,7 +75,7 @@ try {
     { tStartMs: 1400, dDurationMs: 1400, segs: [{ utf8: 'Native second sentence.' }] },
     { tStartMs: 3200, dDurationMs: 1800, segs: [{ utf8: 'Native final sentence.' }] },
     { tStartMs: 20000, dDurationMs: 2000, segs: [{ utf8: 'Future context sentence.' }] },
-  ] });
+  ] }));
   await context.route('https://www.youtube.com/**', async route => {
     const url = new URL(route.request().url());
     if (url.pathname === '/api/timedtext') {
@@ -61,10 +87,11 @@ try {
 const player=document.querySelector('#movie_player'),video=player.querySelector('video'),cc=player.querySelector('button');window.mediaTime=.7;window.clockOffset=0;window.transport='xhr';
 Object.defineProperties(video,{currentTime:{get:()=>window.mediaTime,set:value=>{video.dispatchEvent(new Event('seeking'));window.mediaTime=value;video.dispatchEvent(new Event('seeked'));}},duration:{get:()=>100},paused:{get:()=>true},readyState:{get:()=>4},seeking:{get:()=>false}});
 const id=()=>new URL(location.href).searchParams.get('v');
+const fixtureMetadata=${JSON.stringify(fixtureMetadata)},captionTrack=()=>fixtureMetadata[id()]||{languageCode:'en',kind:''};
 player.getCurrentTime=()=>video.currentTime+window.clockOffset;player.getDuration=()=>100;
-player.getPlayerResponse=()=>({videoDetails:{videoId:id()},captions:{playerCaptionsTracklistRenderer:{defaultAudioTrackIndex:0,audioTracks:[{audioTrackId:'en.0'}],captionTracks:[{languageCode:'en',vssId:'.en',kind:id()==='native-spacing'?'asr':'',baseUrl:'https://www.youtube.com/api/timedtext?v='+id()+'&lang=en'}]}}});
-player.getOption=()=>({languageCode:'en',vssId:'.en'});player.setOption=()=>{};
-window.requestNative=()=>{const url='/api/timedtext?native=1&v='+id()+'&lang=en'+(id()==='native-spacing'?'&kind=asr':'')+'&fmt='+(window.transport==='xml'?'srv3':'json3');if(window.transport==='fetch')return fetch(url);const xhr=new XMLHttpRequest();xhr.open('GET',url);xhr.send();};
+player.getPlayerResponse=()=>({videoDetails:{videoId:id()},captions:{playerCaptionsTracklistRenderer:{defaultAudioTrackIndex:0,audioTracks:[{audioTrackId:captionTrack().languageCode+'.0'}],captionTracks:[{...captionTrack(),vssId:'.'+captionTrack().languageCode,baseUrl:'https://www.youtube.com/api/timedtext?v='+id()+'&lang='+captionTrack().languageCode}]}}});
+player.getOption=()=>({...captionTrack(),vssId:'.'+captionTrack().languageCode});player.setOption=()=>{};
+window.requestNative=()=>{const track=captionTrack(),url='/api/timedtext?native=1&v='+id()+'&lang='+track.languageCode+(track.kind?'&kind='+track.kind:'')+'&fmt='+(window.transport==='xml'?'srv3':'json3');if(window.transport==='fetch')return fetch(url);const xhr=new XMLHttpRequest();xhr.open('GET',url);xhr.send();};
 cc.onclick=()=>{const active=cc.getAttribute('aria-pressed')!=='true';cc.setAttribute('aria-pressed',String(active));if(active)requestNative();};
 </script>` });
   });
@@ -113,6 +140,17 @@ cc.onclick=()=>{const active=cc.getAttribute('aria-pressed')!=='true';cc.setAttr
   assert.ok(calls.includes('what you can'), 'The selected service receives visible word boundaries too');
   assert.equal(await page.locator('.lt-youtube-overlay .source').textContent(), 'what you can');
   report.checks.push('Native ASR zero-width separators become visible spaces in both the English row and the chosen-service request.');
+  for (const fixture of nativeRegressions) {
+    await page.evaluate(id => { document.dispatchEvent(new Event('yt-navigate-start')); history.pushState({}, '', '/watch?v=' + id); window.transport = 'xhr'; window.mediaTime = .7; document.dispatchEvent(new Event('yt-navigate-finish')); requestNative(); }, fixture.id);
+    const chinese = /^zh(?:-|$)/.test(fixture.languageCode);
+    const translated = chinese ? '' : '已配置服务：' + fixture.expected;
+    await page.locator('.lt-youtube-overlay').getByText(fixture.expected, { exact: true }).waitFor({ timeout: 7000 });
+    if (!chinese) await page.locator('.lt-youtube-overlay').getByText(translated, { exact: true }).waitFor({ timeout: 7000 });
+    assert.equal(await page.locator('.lt-youtube-overlay .source').textContent(), fixture.expected, fixture.id + ' source');
+    assert.equal(await page.locator('.lt-youtube-overlay .translation').textContent(), translated, fixture.id + ' translation');
+    assert.equal(calls.includes(fixture.expected), !chinese, fixture.id + ' chosen-service request');
+  }
+  report.checks.push('Controlled native JSON3 preserves an append-newline word boundary without splitting English word/contraction/decimal fragments or Chinese characters. English display and service input agree; a Chinese source needs no translation request.');
   assert.deepEqual(report.errors, []);
   report.ok = true;
 } catch (error) { report.ok = false; report.failure = error.message.split('\n')[0]; throw error; }

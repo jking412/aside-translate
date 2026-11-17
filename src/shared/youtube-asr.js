@@ -7,7 +7,15 @@ export function englishWordCues(events) {
   const pieces = [];
   const uppercase = spoken.flatMap(event => event.segs).filter(segment => /[a-z]/.test(segment?.utf8 || '')).length <= spoken.length * 0.1;
   let pendingSpace = false;
-  for (const event of spoken) {
+  for (const event of events) {
+    if (!Array.isArray(event?.segs)) continue;
+    if (event.aAppend === 1) {
+      // JSON3 may put a row's only word separator in an append-newline
+      // event. Keep that boundary while still ignoring roll-up speech.
+      const text = event.segs.map(segment => typeof segment?.utf8 === 'string' ? segment.utf8 : '').join('');
+      if (/^[\s\u200b]+$/.test(text)) pendingSpace = true;
+      continue;
+    }
     for (const segment of event.segs) {
       // Match captionText's separator policy before trimming or combining
       // fragments. U+200B may be the only boundary between two spoken words.

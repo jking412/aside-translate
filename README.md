@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/jking412/aside-translate/releases/download/v0.3.1/aside-translate-0.3.1.zip">下载旁译</a></strong> ·
+  <strong><a href="https://github.com/jking412/aside-translate/releases/download/v0.3.2/aside-translate-0.3.2.zip">下载旁译</a></strong> ·
   <a href="#安装">安装指南</a> ·
   <a href="#翻译服务">配置 DeepSeek</a> ·
   <a href="https://github.com/jking412/aside-translate/issues">反馈问题</a>
@@ -49,7 +49,7 @@
 
 支持桌面版 **Chrome、Edge 及其他 Chromium 浏览器**，使用扩展无需安装 Node.js。
 
-1. **[下载扩展 ZIP](https://github.com/jking412/aside-translate/releases/download/v0.3.1/aside-translate-0.3.1.zip)**，解压到一个固定文件夹。
+1. **[下载扩展 ZIP](https://github.com/jking412/aside-translate/releases/download/v0.3.2/aside-translate-0.3.2.zip)**，解压到一个固定文件夹。
 2. 在 Chrome 中打开 `chrome://extensions`，或在 Edge 中打开 `edge://extensions`，开启「开发者模式」。
 3. 点击「加载已解压的扩展」，选择包含 `manifest.json` 的文件夹。
 4. 将旁译固定到工具栏，刷新网页，即可使用。
